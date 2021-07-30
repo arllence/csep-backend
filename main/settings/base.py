@@ -103,12 +103,12 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 # USER_MANAGER_SCHEMA = 'system_users'
 
 REST_FRAMEWORK = {
-    # 'DEFAULT_AUTHENTICATION_CLASSES': (
-    #     'authentication.backends.SystemApiAuthentication',
-    # ),
-    # 'DEFAULT_PERMISSION_CLASSES': (
-    #     'rest_framework.permissions.IsAuthenticated',
-    # )
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'user_manager.backends.SystemApiAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    )
 }
 
 X_FRAME_OPTIONS = 'ALLOW-FROM https://127.0.0.1/'
@@ -137,5 +137,6 @@ CORS_ALLOW_HEADERS = [
 ]
 
 MAINMEDIA = os.getenv('MAINMEDIA')
-
+EMAIL_HOST = os.getenv('EMAIL_HOST')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 

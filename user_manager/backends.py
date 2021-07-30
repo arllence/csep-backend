@@ -1,6 +1,6 @@
 import jwt
 from rest_framework import authentication, exceptions
-from edms.models import User
+from user_manager.models import User
 from rest_framework import status
 from datetime import datetime, timedelta
 from django.conf import settings
@@ -86,7 +86,7 @@ class SystemApiAuthentication(authentication.BaseAuthentication):
         successful, return the user and token. If not, throw an error.
         """
         try:
-            payload = jwt.decode(token, settings.TOKEN_SECRET_CODE)
+            payload = jwt.decode(token, settings.TOKEN_SECRET_CODE,algorithms='HS256')
         except jwt.ExpiredSignatureError:
             raise exceptions.AuthenticationFailed(
                 {"message": "User Logged Out.Please Try Again", "code": status.HTTP_401_UNAUTHORIZED})

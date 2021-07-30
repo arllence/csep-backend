@@ -108,6 +108,9 @@ class AccountActivitySerializer(serializers.Serializer):
     id = serializers.CharField()
     activity = serializers.CharField()
 
+class OtpSerializer(serializers.Serializer):
+    otp = serializers.CharField()
+
 
 # class AccountActivityDetailSerializer(serializers.ModelSerializer):
 #     class Meta:

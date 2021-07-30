@@ -30,7 +30,7 @@ class AppAuthentication:
 
         incomingdata = payload
 
-        username = incomingdata['username']
+        email = incomingdata['email']
         password = incomingdata['password']
         authtype = incomingdata['authtype']
         if authtype == 'mob':
@@ -40,27 +40,26 @@ class AppAuthentication:
             deviceexists = mobiledevices.objects.filter(
                 imeino=deviceimei, deviceuuid=deviceuuid).exists()
             if deviceexists:
-                return self.authenticateuser(username, password)
+                return self.authenticateuser(email, password)
 
             else:
                 raise exceptions.NotFound(
                     {"message": "Device Does Not Exist", "code": status.HTTP_404_NOT_FOUND})
         elif authtype == 'web':
-            return self.authenticateuser(username, password)
+            return self.authenticateuser(email, password)
         else:
             raise exceptions.NotFound(
                 {"message": "Invalid Authentication Type", "code": status.HTTP_404_NOT_FOUND})
 
-    def authenticateuser(self, incomingusername, incomingpassword):
-        user = authenticate(username=incomingusername,
+    def authenticateuser(self, incomingemail, incomingpassword):
+        user = authenticate(email=incomingemail,
                             password=incomingpassword)
         # --if user authentication is right, then return a token
         if user:
             payload = {
                 'id': user.pk,
-                'username': user.username,
-                'department': user.department.id,
-                'staff': user.is_staff,
+                'email': user.email,
+                'superuser': user.is_superuser,
                 'exp': datetime.utcnow() + timedelta(seconds=C.EXPIRY_TIME),
                 'iat': datetime.utcnow()
             }
@@ -68,12 +67,12 @@ class AppAuthentication:
             # --retuning the generated token
             userinfo = {
                 "token": token,
-                "username": user.username
+                "email": user.email
             }
             return userinfo
 
         raise APIException(
-            {"message": "Invalid Username / Password", "code": status.HTTP_403_FORBIDDEN})
+            {"message": "Invalid Email / Password", "code": status.HTTP_403_FORBIDDEN})
 
     def token_expires_in(self, token):
 

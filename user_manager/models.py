@@ -27,8 +27,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
-    is_defaultpassword = models.BooleanField(default=True)
-    is_suspended = models.BooleanField(null=True)
+    is_defaultpassword = models.BooleanField(default=False)
+    is_suspended = models.BooleanField(default=False)
     last_password_reset = models.DateTimeField(auto_now=True)
     objects = UserManager()
 
@@ -81,5 +81,23 @@ class AccountActivity(models.Model):
 
     def __str__(self):
         return str(self.id)
+
+
+
+class OtpCodes(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    recipient = models.ForeignKey(
+        User, related_name="user_otp_code", on_delete=models.CASCADE
+    )    
+    otp = models.CharField(max_length=50)
+    action_time = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        app_label = "user_manager"
+        db_table = "otp_codes"
+
+    def __str__(self):
+        return str(self.id)
+
 
 
