@@ -227,7 +227,22 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                     user.verified_email = True
                     user.save()
                     check.delete()
-                    return Response('success', status=status.HTTP_200_OK)
+
+                    payload = {
+                    'id': str(user.id),
+                    'email': user.email,
+                    'name': user.first_name,
+                    "verified_email": user.verified_email,
+                    'superuser': user.is_superuser,
+                    'exp': datetime.utcnow() + timedelta(seconds=settings.TOKEN_EXPIRY),
+                    'iat': datetime.utcnow()
+                    }
+                
+                    token = jwt.encode(payload, settings.TOKEN_SECRET_CODE)
+                    info = {
+                        "token": token
+                    }
+                    return Response(info, status=status.HTTP_200_OK)
                 except Exception as e:
                     print(e)
                     return Response({'details':
