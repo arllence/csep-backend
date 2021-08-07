@@ -81,7 +81,7 @@ STATIC_URL = '/static/'
 
 AUTH_USER_MODEL = 'user_manager.User'
 LOGIN_REDIRECT_URL = '/portal'
-LOGIN_URL = '/edms/login'
+LOGIN_URL = '/authentication/login'
 
 
 

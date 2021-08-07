@@ -5,6 +5,7 @@ from django.contrib.auth import authenticate
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.contrib.auth.models import Permission
+from rest_framework.parsers import MultiPartParser, JSONParser
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import viewsets, status
 import json
@@ -20,6 +21,9 @@ from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission, Group
 from django.db import IntegrityError, transaction
+from user_manager import models as models
+from user_manager.forms import PictureUploadForm
+
 
 
 class AuthenticationViewSet(viewsets.ModelViewSet):
@@ -61,17 +65,21 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
             if is_suspended is True or is_suspended is None:
                 return Response({"details": "Your Account Has Been Suspended,Contact Admin"}, status=status.HTTP_400_BAD_REQUEST)
             else:
- 
+                completed_profile = models.CompletedProfile.objects.filter(user=is_authenticated).exists()
                 payload = {
                     'id': str(is_authenticated.id),
                     'email': is_authenticated.email,
                     'name': is_authenticated.first_name,
+                    'first_name': is_authenticated.first_name,
+                    'last_name': is_authenticated.last_name,
                     'password_change_status': change_password,
                     "verified_email": is_authenticated.verified_email,
+                    "completed_profile":completed_profile,
                     'superuser': is_authenticated.is_superuser,
                     'exp': datetime.utcnow() + timedelta(seconds=settings.TOKEN_EXPIRY),
                     'iat': datetime.utcnow()
                 }
+                # print(payload)
                 
                 token = jwt.encode(payload, settings.TOKEN_SECRET_CODE)
                 response_info = {
@@ -95,8 +103,8 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                 email = payload['email']
                 first_name = payload['first_name']
                 last_name = payload['last_name']
-                phone_number = payload['phone_number']
-                gender = payload['gender']
+                # phone_number = payload['phone_number']
+                # gender = payload['gender']
                 register_as = payload['register_as']
                 hear_about_us = payload['hear_about_us']
                 newsletter = payload['newsletter']
@@ -156,10 +164,10 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                 hashed_pwd = make_password(password)
                 newuser = {
                     "email": email,
-                    "phone_number": phone_number,
+                    # "phone_number": phone_number,
                     "first_name": first_name,
                     "last_name": last_name,
-                    "gender": gender,
+                    # "gender": gender,
                     "hear_about_us": hear_about_us,
                     "newsletter": newsletter,
                     "accepted_terms": accepted_terms,
@@ -204,12 +212,26 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
 
 class AccountManagementViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
+    parser_classes = (MultiPartParser,JSONParser)
     queryset = models.User.objects.all().order_by('id')
     serializer_class = serializers.SystemUsersSerializer
     search_fields = ['id', ]
 
     def get_queryset(self):
         return []
+
+    @action(methods=["GET"], detail=False, url_path="check-completed-profile", url_name="check-completed-profile")
+    def check_completed_profile(self, request):
+        user_id = request.user.id
+        if user_id:
+            check = models.CompletedProfile.objects.filter(user=user_id).exists()
+            info = {
+                "status": check
+            }
+            return Response(info, status=status.HTTP_200_OK)
+        else:
+            return Response({'details':'Invalid User'},status=status.HTTP_400_BAD_REQUEST)
+
 
     @action(methods=["POST"], detail=False, url_path="verify-email", url_name="verify-email")
     def verify_email(self, request):
@@ -249,6 +271,121 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                                      'Incorrect OTP Code'},
                                     status=status.HTTP_400_BAD_REQUEST)
 
+
+    @action(methods=["POST"], detail=False, url_path="create-profile", url_name="create-profile")
+    def create_profile(self, request):
+        payload = request.data
+        authenticated_user = request.user
+
+        print(payload)
+
+        serializer = serializers.CreateProfileSerializer(data=payload, many=False)
+        if serializer.is_valid():
+            # return True
+            with transaction.atomic():
+                email = payload['email']
+                first_name = payload['first_name']
+                last_name = payload['last_name']
+                phone = payload['phone']
+                gender = payload['gender']
+                age_group = payload['age_group']
+                disability = payload['disability']
+                country = payload['country']
+                bio = payload['bio']
+                state = payload['state']
+                city = payload['city']
+                address = payload['address']
+                postal = payload['postal']
+                level_of_education = payload['level_of_education']
+                employment = payload['employment']
+                skills = payload['skills']
+
+                authenticated_user.first_name = first_name
+                authenticated_user.last_name = last_name
+                authenticated_user.save()
+
+
+                profile = {
+                    "user": authenticated_user,
+                    "gender": gender,
+                    "phone": phone,
+                    "age_group": age_group,
+                    "disability": disability,
+                    "country": country,
+                    "bio": bio,
+                    "state": state,
+                    "city": city,
+                    "physical_address": address,
+                    "postal_code": postal,
+                    "education_level": level_of_education,
+                    "employment_status": employment
+                }
+                models.UserInfo.objects.create(**profile)
+
+                for skill in skills:
+                    to_create = {
+                        "user": authenticated_user,
+                        "name" : skill
+                    }
+                    models.Skills.objects.create(**to_create)
+
+                models.CompletedProfile.objects.create(user=authenticated_user)
+
+                return Response("succees", status=status.HTTP_200_OK)
+
+
+    @action(methods=["POST"], detail=False, url_path="upload-document", url_name="upload-document")
+    def upload_document(self, request):
+        auth_user = request.user
+        form = PictureUploadForm(request.POST, request.FILES)
+        upload_status = False
+        document_type = (request.data['documentType'])
+        if form.is_valid():
+            with transaction.atomic():
+                uploaded_files = []
+                not_uploaded_files = []
+                for f in request.FILES.getlist('document'):
+                    original_file_name = f.name
+                    if document_type == 'profile_picture':
+                        original_file_exists = models.ProfilePicture.objects.filter(
+                            original_file_name=original_file_name).exists()
+                    else:
+                        original_file_exists = models.Document.objects.filter(
+                            original_file_name=original_file_name).exists()
+                    if original_file_exists:
+                        upload_status = False
+                        not_uploaded_files.append(
+                            {"name": str(original_file_name), "reason": "File already exists"})
+
+                    else:
+                        uploaded_files.append({"name": str(original_file_name)})
+                        upload_status = True
+                        loggedin_user = request.user
+                        if  document_type == 'profile_picture':
+                            old_pictures = models.ProfilePicture.objects.filter(user=auth_user.id)
+                            if old_pictures:
+                                for picture in old_pictures:
+                                    picture.status = False
+                                    picture.save()
+                            newinstance = models.ProfilePicture.objects.create(
+                                profile_picture=f, user=loggedin_user, original_file_name=original_file_name, status=True)
+                            url = newinstance.profile_picture.url
+                        else:
+                            newinstance = models.Document.objects.create(
+                                document=f, user=loggedin_user, original_file_name=original_file_name)
+                            url = newinstance.document.url
+                        info = {
+                            "url_link" : url
+                        }
+                        print(info)
+                if upload_status is True:
+                    return Response(info, status=status.HTTP_200_OK)
+                else:
+                    return Response({"details": "File Already Exists"}, status=status.HTTP_400_BAD_REQUEST)
+
+        else:
+            return Response({"details": "Invalid file passed"}, status=status.HTTP_400_BAD_REQUEST)
+
     
     @action(methods=["POST"], detail=False, url_path="resend-otp", url_name="resend-otp")
     def resend_otp(self, request):
@@ -278,6 +415,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                 except Exception as e:
                     print(e)
                 return Response('success', status=status.HTTP_200_OK)
+
 
     @action(methods=["POST"], detail=False, url_path="change-password", url_name="change-password")
     def change_password(self, request):
@@ -502,8 +640,8 @@ class SuperUserViewSet(viewsets.ModelViewSet):
             email = payload['email']
             first_name = payload['first_name']
             last_name = payload['last_name']
-            phone_number = payload['phone_number']
-            gender = payload['gender']
+            # phone_number = payload['phone_number']
+            # gender = payload['gender']
             register_as = payload['register_as']
             account_id = payload['account_id']
 

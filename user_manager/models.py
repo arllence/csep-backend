@@ -30,6 +30,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_defaultpassword = models.BooleanField(default=False)
     is_suspended = models.BooleanField(default=False)
     last_password_reset = models.DateTimeField(auto_now=True)
+    date_created = models.DateTimeField(auto_now_add=True)
     objects = UserManager()
 
     USERNAME_FIELD = "email"
@@ -53,26 +54,62 @@ class UserInfo(models.Model):
         User, on_delete=models.CASCADE, related_name="user_profile_info"
     )
     profile_picture = models.ImageField(upload_to='profile_images', blank=True)
-    phone_number = models.CharField(max_length=50)
+    phone = models.CharField(max_length=50)
     gender = models.CharField(max_length=50)
-    about = models.TextField()
-    age = models.CharField(max_length=100)
+    bio = models.TextField()
+    age_group = models.CharField(max_length=100)
     disability = models.TextField()
 
     country = models.CharField(max_length=100)
     county = models.CharField(max_length=100)
     city = models.CharField(max_length=100)
     physical_address = models.CharField(max_length=100)
-    county = models.CharField(max_length=100)
+    state = models.CharField(max_length=100)
     postal_code = models.CharField(max_length=100)
 
     education_level = models.CharField(max_length=100)
     employment_status = models.CharField(max_length=100)
+    date_created = models.DateTimeField(auto_now_add=True)
 
     
     class Meta:
         app_label = "user_manager"
         db_table = "user_info"
+
+    def __str__(self):
+        return str(self.id)
+
+
+class ProfilePicture(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="user_profile_picture"
+    )
+    profile_picture = models.ImageField(upload_to='profile_images')
+    original_file_name = models.CharField(max_length=100)
+    status = models.BooleanField(default=False)
+    date_created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        app_label = "user_manager"
+        db_table = "profile_picture"
+
+    def __str__(self):
+        return str(self.profile_picture.url)
+
+class Document(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="user_documents"
+    )
+    document = models.ImageField(upload_to='documents')
+    original_file_name = models.CharField(max_length=100)
+    status = models.BooleanField(default=False)
+    date_created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        app_label = "user_manager"
+        db_table = "documets"
 
     def __str__(self):
         return str(self.id)
@@ -83,6 +120,7 @@ class Skills(models.Model):
         User, on_delete=models.CASCADE, related_name="user_profile"
     )
     name = models.CharField(max_length=50)
+    date_created = models.DateTimeField(auto_now_add=True)
     
     class Meta:
         app_label = "user_manager"
@@ -91,6 +129,20 @@ class Skills(models.Model):
     def __str__(self):
         return str(self.name)
 
+
+class CompletedProfile(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="user_completed_profile"
+    )
+    date_created = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        app_label = "user_manager"
+        db_table = "completed_profile"
+
+    def __str__(self):
+        return str(self.user.email)
 
 class AccountActivity(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
