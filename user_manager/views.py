@@ -287,6 +287,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                 first_name = payload['first_name'].capitalize()
                 last_name = payload['last_name'].capitalize()
                 phone = payload['phone']
+                id_number = payload['id_number']
                 gender = payload['gender']
                 age_group = payload['age_group']
                 disability = payload['disability']
@@ -309,6 +310,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                     "user": authenticated_user,
                     "gender": gender,
                     "phone": phone,
+                    "id_number": id_number,
                     "age_group": age_group,
                     "disability": disability,
                     "country": country,
@@ -338,10 +340,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
     def user_profile(self, request):
         authenticated_user = request.user
         try:
-            user_obj = models.User.objects.get(id=authenticated_user.id)
             serializer = serializers.UserProfileSerializer(authenticated_user, many=False)
-
-            # print(serializer.data)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
             print(e)
