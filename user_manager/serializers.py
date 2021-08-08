@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 # from edms.models import DocumentActivity
 from django.contrib.auth.models import Group
 from django.conf import settings
+from user_manager import models as models
 
 
 class UserDetailSerializer(serializers.Serializer):
@@ -43,8 +44,7 @@ class DepartmentSerializer(serializers.Serializer):
 
 class UsersSerializer(serializers.ModelSerializer):
     id = serializers.CharField()
-    username = serializers.CharField()
-    id_number = serializers.CharField()
+    email = serializers.CharField()
     first_name = serializers.CharField()
     last_name = serializers.CharField()
     is_active = serializers.CharField()
@@ -54,19 +54,8 @@ class UsersSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
         fields = [
-            'id', 'email', 'first_name', 'last_name', 'is_active', 'is_suspended','department', 'user_groups'
+            'id', 'email', 'first_name', 'last_name', 'is_active', 'is_suspended','user_groups','date_created'
         ]
-
-    def get_department(self, obj):
-        # department_details = obj.department
-        department_id = obj.department
-        response = requests.get(settings.DEPARTMENT_DETAIL_VIEW + department_id)
-        department_info = response.json()
-        # if department_details is None:
-        #     return {}
-        # department_info = DepartmentSerializer(department_details, many=False)
-        # return department_info.data
-        return department_info
 
     def get_user_groups(self, obj):
         current_user = obj
@@ -83,6 +72,21 @@ class SwapUserDepartmentSerializer(serializers.Serializer):
 class RoleSerializer(serializers.Serializer):
     id = serializers.CharField()
     name = serializers.CharField()
+
+class SkillsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Skills
+        fields = '__all__'
+
+class ProfilePictureSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.ProfilePicture
+        fields = '__all__'
+
+class ProfileInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.UserInfo
+        fields = '__all__'
 
 
 class CreateUserSerializer(serializers.Serializer):
@@ -117,10 +121,40 @@ class CreateProfileSerializer(serializers.Serializer):
     skills = serializers.ListField()
 
 
+class UserProfileSerializer(serializers.Serializer):
+    user = serializers.SerializerMethodField('get_user')
+    profile_info = serializers.SerializerMethodField('get_profile_info')
+    skills = serializers.SerializerMethodField('get_skills')
+    profile_picture = serializers.SerializerMethodField('get_profile_picture')
+
+    def get_profile_info(self, obj):
+        current_user = obj
+        profile = models.UserInfo.objects.get(user=current_user)
+        serializer = ProfileInfoSerializer(profile, many=False)
+        return serializer.data
+    
+    def get_profile_picture(self, obj):
+        current_user = obj
+        profile = models.ProfilePicture.objects.filter(user=current_user, status=True)
+        serializer = ProfilePictureSerializer(profile[0], many=False)
+        return serializer.data
+
+    def get_skills(self, obj):
+        current_user = obj
+        skills = models.Skills.objects.filter(user=current_user)
+        serializer = SkillsSerializer(skills, many=True)
+        return serializer.data
+
+    def get_user(self, obj):
+        current_user = obj
+        user = get_user_model().objects.get(id=current_user.id)
+        serializer = UsersSerializer(user, many=False)
+        return serializer.data
+
+
 class SuspendUserSerializer(serializers.Serializer):
     user_id = serializers.CharField()
     remarks = serializers.CharField()
-
 
 class AccountActivitySerializer(serializers.Serializer):
     id = serializers.CharField()

@@ -284,16 +284,16 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
             # return True
             with transaction.atomic():
                 email = payload['email']
-                first_name = payload['first_name']
-                last_name = payload['last_name']
+                first_name = payload['first_name'].capitalize()
+                last_name = payload['last_name'].capitalize()
                 phone = payload['phone']
                 gender = payload['gender']
                 age_group = payload['age_group']
                 disability = payload['disability']
                 country = payload['country']
                 bio = payload['bio']
-                state = payload['state']
-                city = payload['city']
+                state = payload['state'].capitalize()
+                city = payload['city'].capitalize()
                 address = payload['address']
                 postal = payload['postal']
                 level_of_education = payload['level_of_education']
@@ -332,6 +332,20 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                 models.CompletedProfile.objects.create(user=authenticated_user)
 
                 return Response("succees", status=status.HTTP_200_OK)
+
+
+    @action(methods=["GET"], detail=False, url_path="user-profile", url_name="user-profile")
+    def user_profile(self, request):
+        authenticated_user = request.user
+        try:
+            user_obj = models.User.objects.get(id=authenticated_user.id)
+            serializer = serializers.UserProfileSerializer(authenticated_user, many=False)
+
+            # print(serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            return Response({'details':'Error Geting Profile'},status=status.HTTP_400_BAD_REQUEST)
 
 
     @action(methods=["POST"], detail=False, url_path="upload-document", url_name="upload-document")

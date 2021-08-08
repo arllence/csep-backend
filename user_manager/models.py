@@ -55,6 +55,7 @@ class UserInfo(models.Model):
     )
     profile_picture = models.ImageField(upload_to='profile_images', blank=True)
     phone = models.CharField(max_length=50)
+    id_number = models.CharField(max_length=50)
     gender = models.CharField(max_length=50)
     bio = models.TextField()
     age_group = models.CharField(max_length=100)
