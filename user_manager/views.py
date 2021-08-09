@@ -305,33 +305,65 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                 authenticated_user.last_name = last_name
                 authenticated_user.save()
 
+                user_exists = models.CompletedProfile.objects.filter(user=authenticated_user).exists()
+                if user_exists:
+                    user_profile = models.UserInfo.objects.get(user=authenticated_user)
+                    user_profile.phone = phone
+                    user_profile.id_number = id_number
+                    user_profile.age_group = age_group
+                    user_profile.disability = disability
+                    user_profile.country = country
+                    user_profile.bio = bio
+                    user_profile.state = state
+                    user_profile.city = city
+                    user_profile.physical_address = address
+                    user_profile.postal_code = postal
+                    user_profile.level_of_education = level_of_education
+                    user_profile.employment = employment
 
-                profile = {
-                    "user": authenticated_user,
-                    "gender": gender,
-                    "phone": phone,
-                    "id_number": id_number,
-                    "age_group": age_group,
-                    "disability": disability,
-                    "country": country,
-                    "bio": bio,
-                    "state": state,
-                    "city": city,
-                    "physical_address": address,
-                    "postal_code": postal,
-                    "education_level": level_of_education,
-                    "employment_status": employment
-                }
-                models.UserInfo.objects.create(**profile)
+                    user_profile.save()
 
-                for skill in skills:
-                    to_create = {
+                    current_skills = models.Skills.objects.filter(user=authenticated_user)
+                    all_skills = []
+                    for skill in current_skills:
+                        all_skills.append(skill.name)
+
+                    for skill in skills:
+                        if skill not in all_skills:
+                            to_create = {
+                                "user": authenticated_user,
+                                "name" : skill
+                            }
+
+                            models.Skills.objects.create(**to_create)
+                    
+                else:
+                    profile = {
                         "user": authenticated_user,
-                        "name" : skill
+                        "gender": gender,
+                        "phone": phone,
+                        "id_number": id_number,
+                        "age_group": age_group,
+                        "disability": disability,
+                        "country": country,
+                        "bio": bio,
+                        "state": state,
+                        "city": city,
+                        "physical_address": address,
+                        "postal_code": postal,
+                        "education_level": level_of_education,
+                        "employment_status": employment
                     }
-                    models.Skills.objects.create(**to_create)
+                    models.UserInfo.objects.create(**profile)
 
-                models.CompletedProfile.objects.create(user=authenticated_user)
+                    for skill in skills:
+                        to_create = {
+                            "user": authenticated_user,
+                            "name" : skill
+                        }
+                        models.Skills.objects.create(**to_create)
+
+                    models.CompletedProfile.objects.create(user=authenticated_user)
 
                 return Response("succees", status=status.HTTP_200_OK)
 
