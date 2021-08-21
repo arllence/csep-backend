@@ -108,7 +108,7 @@ class Document(models.Model):
 
     class Meta:
         app_label = "user_manager"
-        db_table = "documets"
+        db_table = "documents"
 
     def __str__(self):
         return str(self.id)

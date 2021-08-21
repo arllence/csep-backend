@@ -700,8 +700,8 @@ class SuperUserViewSet(viewsets.ModelViewSet):
             record_instance.first_name = first_name
             record_instance.last_name = last_name
             record_instance.email = email
-            record_instance.phone_number = phone_number
-            record_instance.gender = gender
+            # record_instance.phone_number = phone_number
+            # record_instance.gender = gender
             record_instance.register_as = register_as
             record_instance.save()
 
