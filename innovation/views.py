@@ -47,13 +47,26 @@ class InnovationViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({'details':'Error fetching'},status=status.HTTP_400_BAD_REQUEST)
 
+    
+    @action(methods=["GET"], detail=False, url_path="my-innovations", url_name="my-innovations")
+    def my_innovations(self, request):
+        try:
+            innovation = models.Innovation.objects.filter(creator=request.user)
+            innovation = serializers.InnovationSerializer(innovation, many=True)
+            
+            return Response(innovation.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            return Response({'details':'Error fetching'},status=status.HTTP_400_BAD_REQUEST)
+
 
     @action(methods=["POST"], detail=False, url_path="create-innovation",url_name="create-innovation")
     def innovation(self, request):
         authenticated_user = request.user
         payload = request.data
         payload.update({"creator": authenticated_user.id})
-        serializer = serializers.InnovationSerializer(data=payload, many=False)
+        print(payload)
+        serializer = serializers.CreateInnovationSerializer(data=payload, many=False)
         if serializer.is_valid():
             with transaction.atomic():
                 term = payload['submission_terms']
@@ -61,6 +74,9 @@ class InnovationViewSet(viewsets.ModelViewSet):
                     "submission_terms" : term,
                     "creator" : authenticated_user
                 }
+                ongoing = models.Innovation.objects.filter(creator=request.user,status="ONGOING").exists()
+                if ongoing:
+                    return Response({"details": "Kindly Complete The Currently Pending Inovation Before starting  Another "}, status=status.HTTP_400_BAD_REQUEST)
                 newinstance = models.Innovation.objects.create(**payload)
                 response_info = {
                     "innovation_id" : newinstance.id
@@ -158,7 +174,8 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 }
                 models.InnovationSupportService.objects.create(**to_create)
             
-
+            innovation.status = "COMPLETED"
+            innovation.save()
             
             user_util.log_account_activity(
                 authenticated_user, authenticated_user, "Innovation Social Links created", "Id "  + str(socialInstance.id))
