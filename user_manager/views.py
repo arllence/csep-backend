@@ -1,3 +1,4 @@
+import app_manager
 from rest_framework.views import APIView
 from user_manager import serializers
 from . import models
@@ -22,6 +23,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission, Group
 from django.db import IntegrityError, transaction
 from user_manager import models as models
+from app_manager import models as app_manager_models
+from innovation import models as innovation_models
 from user_manager.forms import PictureUploadForm
 
 
@@ -384,7 +387,12 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
         auth_user = request.user
         form = PictureUploadForm(request.POST, request.FILES)
         upload_status = False
-        document_type = (request.data['documentType'])
+        document_type = request.data['documentType']
+        try:
+            checker = request.data['checker']
+        except:
+            checker = None
+
         if form.is_valid():
             with transaction.atomic():
                 uploaded_files = []
@@ -393,6 +401,9 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                     original_file_name = f.name
                     if document_type == 'profile_picture':
                         original_file_exists = models.ProfilePicture.objects.filter(
+                            original_file_name=original_file_name).exists()
+                    elif checker == "INNOVATION":
+                        original_file_exists = innovation_models.InnovationDocument.objects.filter(
                             original_file_name=original_file_name).exists()
                     else:
                         original_file_exists = models.Document.objects.filter(
@@ -416,13 +427,23 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                                 profile_picture=f, user=loggedin_user, original_file_name=original_file_name, status=True)
                             url = newinstance.profile_picture.url
                         else:
-                            newinstance = models.Document.objects.create(
-                                document=f, user=loggedin_user, original_file_name=original_file_name)
-                            url = newinstance.document.url
-                        info = {
-                            "url_link" : url
-                        }
-                        print(info)
+                            if checker == "INNOVATION":
+                                title_obj = app_manager_models.IntellectualProperty.objects.get(id=document_type)
+                                title = title_obj.name
+                                innovation = request.data['innovation']
+                                innovation = innovation_models.Innovation.objects.get(id=innovation)
+                                newinstance = innovation_models.InnovationDocument.objects.create(
+                                document=f, innovation=innovation, original_file_name=original_file_name,title=title)
+                                info = {
+                                    "success" : "success"
+                                }
+                            else:
+                                newinstance = models.Document.objects.create(
+                                    document=f, user=loggedin_user, original_file_name=original_file_name)
+                                url = newinstance.document.url
+                                info = {
+                                    "url_link" : url
+                                }
                 if upload_status is True:
                     return Response(info, status=status.HTTP_200_OK)
                 else:

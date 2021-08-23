@@ -53,3 +53,16 @@ class IntellectualProperty(models.Model):
 
     def __str__(self):
         return str(self.name)
+
+
+class Hubs(models.Model):
+    name = models.CharField(max_length=255)
+    status = models.BooleanField(default=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        app_label = "app_manager"
+        db_table = "hubs"
+
+    def __str__(self):
+        return str(self.name)

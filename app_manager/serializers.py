@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.conf import settings
-# from user_manager import models as models
+from . import models
 
 class SystemUsersSerializer(serializers.Serializer):
     UserId = serializers.CharField()
@@ -16,3 +16,18 @@ class SupportServicesSerializer(serializers.Serializer):
     service = serializers.CharField()
     description = serializers.CharField()
 
+
+class IndustrySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Industry
+        fields = '__all__'
+
+class DevelopmentStageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.DevelopmentStage
+        fields = '__all__'
+
+class IntellectualPropertySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.IntellectualProperty
+        fields = '__all__'

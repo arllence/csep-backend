@@ -33,10 +33,48 @@ class AdminManagementViewSet(viewsets.ModelViewSet):
     @action(methods=["GET"], detail=False, url_path="support-services", url_name="support-services")
     def support_services(self, request):
         try:
-            services = models.SupportServices.objects.all()
-            print(services)
+            services = models.SupportServices.objects.filter(status=True).order_by('service')
             services = serializers.SupportServicesSerializer(services, many=True)
             return Response(services.data, status=status.HTTP_200_OK)
         except Exception as e:
-            print("Printing: ", e)
-            return Response({'details':'Error fetching'},status=status.HTTP_400_BAD_REQUEST)
+            return Response({'details':'Error fetching support services'},status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["GET"], detail=False, url_path="industries", url_name="industries")
+    def industry(self, request):
+        try:
+            industry = models.Industry.objects.filter(status=True).order_by('name')
+            industry = serializers.IndustrySerializer(industry, many=True)
+            return Response(industry.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'details':'Error fetching industries'},status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["GET"], detail=False, url_path="development-stages", url_name="development-stages")
+    def development_stage(self, request):
+        try:
+            development_stage = models.DevelopmentStage.objects.filter(status=True).order_by('name')
+            development_stage = serializers.DevelopmentStageSerializer(development_stage, many=True)
+            return Response(development_stage.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'details':'Error fetching development stages'},status=status.HTTP_400_BAD_REQUEST)
+
+    
+    @action(methods=["GET"], detail=False, url_path="intellectual-properties", url_name="intellectual-properties")
+    def intellectual_property(self, request):
+        try:
+            intellectual_property = models.IntellectualProperty.objects.filter(status=True).order_by('name')
+            intellectual_property = serializers.IntellectualPropertySerializer(intellectual_property, many=True)
+            return Response(intellectual_property.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'details':'Error fetching intellectual properties'},status=status.HTTP_400_BAD_REQUEST)
+
+    
+    @action(methods=["GET"], detail=False, url_path="hubs", url_name="hubs")
+    def hubs(self, request):
+        try:
+            hubs = models.Hubs.objects.filter(status=True).order_by('name')
+            hubs = serializers.IntellectualPropertySerializer(hubs, many=True)
+            return Response(hubs.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'details':'Error fetching intellectual properties'},status=status.HTTP_400_BAD_REQUEST)
