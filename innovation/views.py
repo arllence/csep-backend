@@ -65,7 +65,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
         authenticated_user = request.user
         payload = request.data
         payload.update({"creator": authenticated_user.id})
-        print(payload)
+        # print(payload)
         serializer = serializers.CreateInnovationSerializer(data=payload, many=False)
         if serializer.is_valid():
             with transaction.atomic():
@@ -124,6 +124,18 @@ class InnovationViewSet(viewsets.ModelViewSet):
             return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
+    @action(methods=["GET"], detail=False, url_path="get-innovation-details", url_name="get-innovation-details")
+    def get_innovation_details(self, request):
+        innovation_id = request.query_params.get('innovation_id')
+        try:
+            details = models.InnovationDetails.objects.get(innovation=innovation_id)
+            details = serializers.InnovationDetailsSerializer(details, many=False)
+            
+            return Response(details.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            return Response({'details':'Error Getting Details'},status=status.HTTP_400_BAD_REQUEST)
+
 
     @action(methods=["POST"], detail=False, url_path="innovation-information",url_name="innovation-information")
     def innovation_information(self, request):
@@ -151,7 +163,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
     def innovation_additional_details(self, request):
         authenticated_user = request.user
         payload = request.data
-        print(payload)
+        # print(payload)
         # payload.update({"creator": authenticated_user.id})
         # serializer = serializers.InnovationInformationSerializer(data=payload, many=False)
         # if serializer.is_valid():
@@ -161,7 +173,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
             payload['innovation'] = innovation
 
             support_services = payload['support_service']
-            print(support_services)
+            # print(support_services)
             del payload['support_service']
 
             socialInstance = models.InnovationSocialLinks.objects.create(**payload)
@@ -174,11 +186,45 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 }
                 models.InnovationSupportService.objects.create(**to_create)
             
-            innovation.status = "COMPLETED"
-            innovation.save()
+            # innovation.status = "COMPLETED"
+            # innovation.save()
             
             user_util.log_account_activity(
                 authenticated_user, authenticated_user, "Innovation Social Links created", "Id "  + str(socialInstance.id))
             return Response("success", status=status.HTTP_200_OK)
         # else:
         #     return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["POST"], detail=False, url_path="complete-innovation",url_name="complete-innovation")
+    def complete_innovation(self, request):
+        authenticated_user = request.user
+        payload = request.data
+
+        with transaction.atomic():
+            try:
+                innovation_id = payload['innovation_id']
+            except:
+                return Response({'details':'Error, No Innovation Found'},status=status.HTTP_400_BAD_REQUEST)
+
+            innovation = models.Innovation.objects.get(id=innovation_id)
+            
+            innovation.status = "COMPLETED"
+            innovation.save()
+            
+            user_util.log_account_activity(
+                authenticated_user, authenticated_user, "Innovation Completed", "Id "  + str(innovation_id))
+            return Response("success", status=status.HTTP_200_OK)
+
+
+    @action(methods=["GET"], detail=False, url_path="innovation-review", url_name="innovation-review")
+    def innovation_review(self, request):
+        innovation_id = request.query_params.get('innovation_id')
+        try:
+            innovation = models.Innovation.objects.get(id=innovation_id)
+            innovation = serializers.FullInnovationSerializer(innovation, many=False)
+            
+            return Response(innovation.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            return Response({'details':'Error fetching review'},status=status.HTTP_400_BAD_REQUEST)

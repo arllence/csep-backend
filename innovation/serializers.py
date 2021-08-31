@@ -35,17 +35,24 @@ class SupportServicesSerializer(serializers.ModelSerializer):
 class InnovationDetailsSerializer(serializers.ModelSerializer):
     # innovation = InnovationSerializer()
     industry = serializers.SerializerMethodField('get_industry')
-    # development_stage = app_manager_serializers.DevelopmentStageSerializer()
+    development_stage = serializers.SerializerMethodField('get_development_stage')
     # intellectual_property = app_manager_serializers.IntellectualPropertySerializer()
     class Meta:
         model = models.InnovationDetails
         fields = '__all__'
 
     def get_industry(self, obj):
-        print(obj.__dict__)
+        # print(obj.__dict__)
         industry = app_manager_models.Industry.objects.get(id=obj.industry_id)
-        print("industry: ", industry)
+        # print("industry: ", industry)
         serializer = app_manager_serializers.IndustrySerializer(industry, many=False)
+        return serializer.data
+
+    def get_development_stage(self, obj):
+        print(obj.__dict__)
+        development_stage = app_manager_models.DevelopmentStage.objects.get(id=obj.development_stage_id)
+        print("development_stage: ", development_stage)
+        serializer = app_manager_serializers.DevelopmentStageSerializer(development_stage, many=False)
         return serializer.data
 
 class InnovationSerializer(serializers.ModelSerializer):
@@ -75,6 +82,16 @@ class CreateInnovationDetailsSerializer(serializers.Serializer):
     hub_affiliation = serializers.CharField()
     intellectual_property = serializers.CharField()
     industry = serializers.CharField()
+    other_industry = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    is_pitched_before = serializers.CharField()
+    has_won_awards = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    awards = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    recognitions = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    require_accreditation = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    accreditation_bodies = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    hub_affiliation = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    hub_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    other_hub_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
 
 class InnovationInformationSerializer(serializers.ModelSerializer):
@@ -111,13 +128,13 @@ class FullInnovationSerializer(serializers.ModelSerializer):
 
 
     def get_details(self, obj):
-        details = models.InnovationDetails.objects.filter(innovation=obj)
-        serializer = InnovationDetailsSerializer(details, many=True)
+        details = models.InnovationDetails.objects.get(innovation=obj)
+        serializer = InnovationDetailsSerializer(details, many=False)
         return serializer.data
 
     def get_information(self, obj):
-        information = models.InnovationInformation.objects.filter(innovation=obj)
-        serializer = InnovationInformationSerializer(information, many=True)
+        information = models.InnovationInformation.objects.get(innovation=obj)
+        serializer = InnovationInformationSerializer(information, many=False)
         return serializer.data
 
     def get_support_services(self, obj):
@@ -126,6 +143,6 @@ class FullInnovationSerializer(serializers.ModelSerializer):
         return serializer.data
 
     def get_social_links(self, obj):
-        social_links = models.InnovationSocialLinks.objects.filter(innovation=obj)
-        serializer = InnovationSocialLinksSerializer(social_links, many=True)
+        social_links = models.InnovationSocialLinks.objects.get(innovation=obj)
+        serializer = InnovationSocialLinksSerializer(social_links, many=False)
         return serializer.data

@@ -1,4 +1,4 @@
-
+import django_heroku
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -20,7 +20,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'user_manager',
     'app_manager',
-    'innovation'
+    'innovation',
+    'django_countries'
 ]
 
   
@@ -141,4 +142,5 @@ CORS_ALLOW_HEADERS = [
 MAINMEDIA = os.getenv('MAINMEDIA')
 EMAIL_HOST = os.getenv('EMAIL_HOST')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+django_heroku.settings(locals())
 

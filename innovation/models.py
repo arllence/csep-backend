@@ -6,6 +6,7 @@ from app_manager import models as app_manager_models
 
 
 
+
 class Innovation(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     submission_terms = models.BooleanField(default=False)
