@@ -62,8 +62,8 @@ media/
 # migrations/
 .sqlite3
 .history/
-.env
-env
+# .env
+# env
 
 
 .code-workspace
