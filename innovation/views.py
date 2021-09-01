@@ -114,11 +114,146 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 else:
                     intellectual_property = app_manager_models.IntellectualProperty.objects.get(id=intellectual_property)
                     payload['intellectual_property'] = intellectual_property
+
+                for key in payload:
+                    if not payload[key]:
+                        payload[key] = None
+
+                if payload['awards']:
+                    for award in payload['awards']:
+                        data = {
+                            "innovation" : innovation,
+                            "name" : award['value']
+                        }
+                        models.Awards.objects.create(**data)
+                    del payload['awards']
+
+
+                if payload['recognitions']:
+                    for recognition in payload['recognitions']:
+                        data = {
+                            "innovation" : innovation,
+                            "name" : recognition['value']
+                        }
+                        models.Recognitions.objects.create(**data)
+                    del payload['recognitions']
+
+
+                if payload['accreditation_bodies']:
+                    for accreditation in payload['accreditation_bodies']:
+                        data = {
+                            "innovation" : innovation,
+                            "name" : accreditation['value']
+                        }
+                        models.AccreditationBody.objects.create(**data)
+                    del payload['accreditation_bodies']
+
                 
                 newinstance = models.InnovationDetails.objects.create(**payload)
                 
                 user_util.log_account_activity(
                     authenticated_user, authenticated_user, "Innovation details created", "Innovation Details Id "  + str(newinstance.id))
+                return Response("success", status=status.HTTP_200_OK)
+        else:
+            return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["POST"], detail=False, url_path="update-innovation-details",url_name="update-innovation-details")
+    def update_innovation_details(self, request):
+        authenticated_user = request.user
+        payload = request.data
+        # payload.update({"creator": authenticated_user.id})
+        for key in payload:
+            if not payload[key]:
+                payload[key] = None
+        serializer = serializers.CreateInnovationDetailsSerializer(data=payload, many=False)
+        if serializer.is_valid():
+            with transaction.atomic():
+                print(payload)
+                try:
+                    innovation = payload['innovation']
+                    innovation = models.Innovation.objects.get(id=innovation)
+                except Exception as e:
+                    print(e)
+                    return Response({'details': 'Missing Innovation Id'},status=status.HTTP_400_BAD_REQUEST )
+
+                try:
+                    details_id = payload['details_id']
+                    details_instance = models.InnovationDetails.objects.get(id=details_id)
+                except Exception as e:
+                    print(e)
+                    return Response({'details': 'Missing Details Id'},status=status.HTTP_400_BAD_REQUEST )
+
+                try:
+                    industry = payload['industry']
+                    industry = app_manager_models.Industry.objects.get(id=industry)
+                    details_instance.industry = industry
+                except Exception as e:
+                    print(e)
+
+                try:
+                    development_stage = payload['development_stage']
+                    development_stage = app_manager_models.DevelopmentStage.objects.get(id=development_stage)
+                    details_instance.development_stage = development_stage
+                except Exception as e:
+                    print(e)
+
+                intellectual_property = payload['intellectual_property']
+                if intellectual_property != 'None' or intellectual_property != 'None of the above':
+                    try:
+                        intellectual_property = app_manager_models.IntellectualProperty.objects.get(id=intellectual_property)
+                        details_instance.intellectual_property = intellectual_property
+                    except Exception as e:
+                        print(e)
+                
+                # attended = ['intellectual_property', 'development_stage', 'industry','accreditation_bodies','awards','recognitions']
+
+                if payload['awards']:
+                    for award in payload['awards']:
+                        name = award['value']
+                        if not models.Awards.objects.filter(name=name,innovation=innovation).exists():
+                            data = {
+                                "innovation" : innovation,
+                                "name" : name
+                            }
+                            models.Awards.objects.create(**data)
+
+
+                if payload['recognitions']:
+                    for recognition in payload['recognitions']:
+                        name = recognition['value']
+                        if not models.Recognitions.objects.filter(name=name,innovation=innovation).exists():
+                            data = {
+                                "innovation" : innovation,
+                                "name" : name
+                            }
+                            models.Recognitions.objects.create(**data)
+
+
+                if payload['accreditation_bodies']:
+                    for accreditation in payload['accreditation_bodies']:
+                        name = accreditation['value']
+                        if not models.AccreditationBody.objects.filter(name=name,innovation=innovation).exists():
+                            data = {
+                                "innovation" : innovation,
+                                "name" : name
+                            }
+                            models.AccreditationBody.objects.create(**data)
+
+                
+                details_instance.innovation_name = payload['innovation_name']
+                details_instance.other_industry = payload['other_industry']
+                details_instance.area_of_focus = payload['area_of_focus']
+                details_instance.is_pitched_before = payload['is_pitched_before']
+                details_instance.has_won_awards = payload['has_won_awards']
+                details_instance.require_accreditation = payload['require_accreditation']
+                details_instance.hub_affiliation = payload['hub_affiliation']
+                details_instance.hub_name = payload['hub_name']
+                details_instance.other_hub_name = payload['other_hub_name']
+                details_instance.save()
+                
+                user_util.log_account_activity(
+                    authenticated_user, authenticated_user, "Innovation details Updated", "Innovation Details Id "  + str(details_instance.id))
                 return Response("success", status=status.HTTP_200_OK)
         else:
             return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)

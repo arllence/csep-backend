@@ -56,10 +56,10 @@ class InnovationDetails(models.Model):
     )
     is_pitched_before = models.CharField(max_length=255)
     has_won_awards = models.CharField(max_length=255, blank=True, null=True)
-    awards = models.CharField(max_length=255, blank=True, null=True)
-    recognitions = models.CharField(max_length=255, default=None)
+    # awards = models.CharField(max_length=255, blank=True, null=True)
+    # recognitions = models.CharField(max_length=255, default=None)
     require_accreditation = models.CharField(max_length=255, blank=True, null=True)
-    accreditation_bodies = models.CharField(max_length=255, blank=True, null=True)
+    # accreditation_bodies = models.CharField(max_length=255, blank=True, null=True)
     hub_affiliation = models.CharField(max_length=255, blank=True, null=True)
     hub_name = models.CharField(max_length=255, blank=True, null=True)
     other_hub_name = models.CharField(max_length=255, blank=True, null=True)
@@ -76,6 +76,49 @@ class InnovationDetails(models.Model):
     def __str__(self):
         return str(self.innovation_name)
 
+
+class AccreditationBody(models.Model):
+    innovation = models.ForeignKey(
+       Innovation, on_delete=models.CASCADE, related_name="accreditation_bodies"
+    )
+    name = models.CharField(max_length=255)
+    status = models.BooleanField(default=True)    
+    date_created = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        app_label = "innovation"
+        db_table = "accreditation_bodies"
+
+    def __str__(self):
+        return str(self.name)
+
+
+class Recognitions(models.Model):
+    innovation = models.ForeignKey(
+       Innovation, on_delete=models.CASCADE, related_name="recognitions"
+    )
+    name = models.CharField(max_length=255)
+    status = models.BooleanField(default=True)    
+    date_created = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        app_label = "innovation"
+        db_table = "recognitions"
+
+    def __str__(self):
+        return str(self.name)
+
+class Awards(models.Model):
+    innovation = models.ForeignKey(
+       Innovation, on_delete=models.CASCADE, related_name="awards"
+    )
+    name = models.CharField(max_length=255)
+    status = models.BooleanField(default=True)    
+    date_created = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        app_label = "innovation"
+        db_table = "awards"
+
+    def __str__(self):
+        return str(self.name)
 
 class InnovationInformation(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

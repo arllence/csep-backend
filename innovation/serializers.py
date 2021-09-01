@@ -42,16 +42,12 @@ class InnovationDetailsSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_industry(self, obj):
-        # print(obj.__dict__)
         industry = app_manager_models.Industry.objects.get(id=obj.industry_id)
-        # print("industry: ", industry)
         serializer = app_manager_serializers.IndustrySerializer(industry, many=False)
         return serializer.data
 
     def get_development_stage(self, obj):
-        print(obj.__dict__)
         development_stage = app_manager_models.DevelopmentStage.objects.get(id=obj.development_stage_id)
-        print("development_stage: ", development_stage)
         serializer = app_manager_serializers.DevelopmentStageSerializer(development_stage, many=False)
         return serializer.data
 
@@ -85,13 +81,14 @@ class CreateInnovationDetailsSerializer(serializers.Serializer):
     other_industry = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     is_pitched_before = serializers.CharField()
     has_won_awards = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    awards = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    recognitions = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    awards = serializers.ListField(required=False,  allow_null=True,allow_empty=True, min_length=0)
+    recognitions = serializers.ListField(required=False, allow_null=True, allow_empty=True, min_length=0)
     require_accreditation = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    accreditation_bodies = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    accreditation_bodies = serializers.ListField(required=False, allow_null=True, allow_empty=True, min_length=0)
     hub_affiliation = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     hub_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     other_hub_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    
 
 
 class InnovationInformationSerializer(serializers.ModelSerializer):
