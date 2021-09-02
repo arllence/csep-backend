@@ -98,8 +98,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
     @action(methods=["POST"], detail=False, url_path="create-account", url_name="create-account")
     def create_account(self, request):
         payload = request.data
-        authenticated_user = request.user
-
+        print(payload)
         serializer = serializers.CreateUserSerializer(data=payload, many=False)
         if serializer.is_valid():
             with transaction.atomic():
@@ -190,14 +189,14 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                     name = create_user.first_name
                     subject = "Activate Your IEN-AFRICA Account"
                     otp = random.randint(1000,100000)
-                    message ='Hi {name}, thanks for joining us \njust one more step.\n Here is your OTP verification code: {otp}'
+                    message =f'Hi {name}, thanks for joining us \njust one more step.\n Here is your OTP verification code: {otp}'
                     try:
                         existing_otp = models.OtpCodes.objects.get(recipient=create_user)
                         existing_otp.delete()
                     except Exception as e:
                         print(e)
                     models.OtpCodes.objects.create(recipient=create_user,otp=otp)
-                    user_util.EmailCrawler.sendmail(recipient,subject,message)
+                    user_util.sendmail(recipient,subject,message)
                 except Exception as e:
                     print(e)
                 info = {
