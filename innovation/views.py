@@ -97,6 +97,10 @@ class InnovationViewSet(viewsets.ModelViewSet):
         authenticated_user = request.user
         payload = request.data
         # payload.update({"creator": authenticated_user.id})
+        for key in payload:
+            if not payload[key]:
+                payload[key] = None
+
         serializer = serializers.CreateInnovationDetailsSerializer(data=payload, many=False)
         if serializer.is_valid():
             with transaction.atomic():
@@ -130,7 +134,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
                             "name" : award['value']
                         }
                         models.Awards.objects.create(**data)
-                    del payload['awards']
+                del payload['awards']
 
 
                 if payload['recognitions']:
@@ -140,7 +144,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
                             "name" : recognition['value']
                         }
                         models.Recognitions.objects.create(**data)
-                    del payload['recognitions']
+                del payload['recognitions']
 
 
                 if payload['accreditation_bodies']:
@@ -150,9 +154,9 @@ class InnovationViewSet(viewsets.ModelViewSet):
                             "name" : accreditation['value']
                         }
                         models.AccreditationBody.objects.create(**data)
-                    del payload['accreditation_bodies']
+                del payload['accreditation_bodies']
 
-                
+                print(payload)
                 newinstance = models.InnovationDetails.objects.create(**payload)
                 
                 user_util.log_account_activity(
@@ -284,7 +288,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
     def innovation_information(self, request):
         authenticated_user = request.user
         payload = request.data
-        print(payload)
+        # print(payload)
         # payload.update({"creator": authenticated_user.id})
         serializer = serializers.InnovationInformationSerializer(data=payload, many=False)
         if serializer.is_valid():
@@ -342,12 +346,20 @@ class InnovationViewSet(viewsets.ModelViewSet):
         authenticated_user = request.user
         payload = request.data
         with transaction.atomic():
-            innovation = payload['innovation']
-            innovation = models.Innovation.objects.get(id=innovation)
+            innovation_id = payload['innovation']
+            innovation = models.Innovation.objects.get(id=innovation_id)
             payload['innovation'] = innovation
 
-            support_services = payload['support_service']
-            # print(support_services)
+            links_exists =  models.InnovationSocialLinks.objects.filter(innovation=innovation_id)
+
+            support_services = []
+            
+            try:
+                support_services = payload['support_service']
+                # print(support_services)
+            except Exception as e:
+                print(e)
+
             del payload['support_service']
 
             socialInstance = models.InnovationSocialLinks.objects.create(**payload)
@@ -373,15 +385,12 @@ class InnovationViewSet(viewsets.ModelViewSet):
         try:
             support_service = []
             services =  models.InnovationSupportService.objects.filter(innovation=innovation_id)
-            # services = serializers.InnovationSupportServiceSerializer(services, many=True)
             for service in services:
-                print(service.service)
                 support_service.append(service.service.service)
-            print(support_service)
+
             links = models.InnovationSocialLinks.objects.get(innovation=innovation_id)
             links = serializers.InnovationSocialLinksSerializer(links, many=False).data
             links.update({"support_service":support_service})
-            print(links)
             return Response(links, status=status.HTTP_200_OK)
         except Exception as e:
             print(e)
