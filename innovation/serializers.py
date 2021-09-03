@@ -42,14 +42,22 @@ class InnovationDetailsSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_industry(self, obj):
-        industry = app_manager_models.Industry.objects.get(id=obj.industry_id)
-        serializer = app_manager_serializers.IndustrySerializer(industry, many=False)
-        return serializer.data
+        try:
+            industry = app_manager_models.Industry.objects.get(id=obj.industry_id)
+            serializer = app_manager_serializers.IndustrySerializer(industry, many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
 
     def get_development_stage(self, obj):
-        development_stage = app_manager_models.DevelopmentStage.objects.get(id=obj.development_stage_id)
-        serializer = app_manager_serializers.DevelopmentStageSerializer(development_stage, many=False)
-        return serializer.data
+        try:
+            development_stage = app_manager_models.DevelopmentStage.objects.get(id=obj.development_stage_id)
+            serializer = app_manager_serializers.DevelopmentStageSerializer(development_stage, many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
 
 class InnovationSerializer(serializers.ModelSerializer):
     creator = UsersSerializer()
@@ -125,14 +133,22 @@ class FullInnovationSerializer(serializers.ModelSerializer):
 
 
     def get_details(self, obj):
-        details = models.InnovationDetails.objects.get(innovation=obj)
-        serializer = InnovationDetailsSerializer(details, many=False)
-        return serializer.data
+        try:
+            details = models.InnovationDetails.objects.get(innovation=obj)
+            serializer = InnovationDetailsSerializer(details, many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
 
     def get_information(self, obj):
-        information = models.InnovationInformation.objects.get(innovation=obj)
-        serializer = InnovationInformationSerializer(information, many=False)
-        return serializer.data
+        try:
+            information = models.InnovationInformation.objects.get(innovation=obj)
+            serializer = InnovationInformationSerializer(information, many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
 
     def get_support_services(self, obj):
         support_services = models.InnovationSupportService.objects.filter(innovation=obj)
@@ -140,6 +156,10 @@ class FullInnovationSerializer(serializers.ModelSerializer):
         return serializer.data
 
     def get_social_links(self, obj):
-        social_links = models.InnovationSocialLinks.objects.get(innovation=obj)
-        serializer = InnovationSocialLinksSerializer(social_links, many=False)
-        return serializer.data
+        try:
+            social_links = models.InnovationSocialLinks.objects.get(innovation=obj)
+            serializer = InnovationSocialLinksSerializer(social_links, many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []

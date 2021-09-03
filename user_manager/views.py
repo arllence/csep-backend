@@ -109,6 +109,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                 # gender = payload['gender']
                 register_as = payload['register_as']
                 hear_about_us = payload['hear_about_us']
+                hear_about_us_other = payload['hear_about_us_other']
                 newsletter = payload['newsletter']
                 accepted_terms = payload['accepted_terms']
                 password = payload['password']
@@ -171,6 +172,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                     "last_name": last_name,
                     # "gender": gender,
                     "hear_about_us": hear_about_us,
+                    "hear_about_us_other": hear_about_us_other,
                     "newsletter": newsletter,
                     "accepted_terms": accepted_terms,
                     "register_as": register_as,
@@ -200,7 +202,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                 except Exception as e:
                     print(e)
                 info = {
-                    'success': 'Account Created Successfully'
+                    'email': email
                 }
                 return Response(info, status=status.HTTP_200_OK)
 

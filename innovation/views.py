@@ -19,6 +19,8 @@ from django.contrib.auth.models import Permission, Group
 from django.db import IntegrityError, transaction
 from app_manager import models as app_manager_models
 
+import innovation
+
 
 
 
@@ -76,10 +78,12 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 }
                 ongoing = models.Innovation.objects.filter(creator=request.user,status="ONGOING").exists()
                 if ongoing:
-                    return Response({"details": "Kindly Complete The Currently Pending Inovation Before starting  Another "}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({"status":"ongoing"}, status=status.HTTP_200_OK)
+                    # return Response({"details": "Kindly Complete The Currently Pending Inovation Before starting  Another "}, status=status.HTTP_400_BAD_REQUEST)
                 newinstance = models.Innovation.objects.create(**payload)
                 response_info = {
-                    "innovation_id" : newinstance.id
+                    "innovation_id" : newinstance.id,
+                    "status":"created"
                 }
                 user_util.log_account_activity(
                     authenticated_user, authenticated_user, "Innovation created", "Innovation Creation Executed")
@@ -262,14 +266,18 @@ class InnovationViewSet(viewsets.ModelViewSet):
     @action(methods=["GET"], detail=False, url_path="get-innovation-details", url_name="get-innovation-details")
     def get_innovation_details(self, request):
         innovation_id = request.query_params.get('innovation_id')
+        if not innovation_id:
+            return Response({'details':'Innovation Id Required'},status=status.HTTP_400_BAD_REQUEST)
         try:
             details = models.InnovationDetails.objects.get(innovation=innovation_id)
+            print("details", details)
             details = serializers.InnovationDetailsSerializer(details, many=False)
             
             return Response(details.data, status=status.HTTP_200_OK)
         except Exception as e:
             print(e)
-            return Response({'details':'Error Getting Details'},status=status.HTTP_400_BAD_REQUEST)
+            return Response({'status': False}, status=status.HTTP_200_OK)
+            # return Response({'details':'Error Getting Details'},status=status.HTTP_400_BAD_REQUEST)
 
 
     @action(methods=["POST"], detail=False, url_path="innovation-information",url_name="innovation-information")
@@ -281,27 +289,58 @@ class InnovationViewSet(viewsets.ModelViewSet):
         serializer = serializers.InnovationInformationSerializer(data=payload, many=False)
         if serializer.is_valid():
             with transaction.atomic():
-                innovation = payload['innovation']
-                innovation = models.Innovation.objects.get(id=innovation)
+                innovation_id = payload['innovation']
+                innovation_exists = models.InnovationInformation.objects.filter(innovation=innovation_id).exists()
+                innovation = models.Innovation.objects.get(id=innovation_id)
                 payload['innovation'] = innovation
+
+                if innovation_exists:
+                    instance = models.InnovationInformation.objects.get(innovation=innovation_id)
+                    instance.innovation_brief = payload['innovation_brief']
+                    instance.problem_statement = payload['problem_statement']
+                    instance.background_research = payload['background_research']
+                    instance.target_customers = payload['target_customers']
+                    instance.value_proposition = payload['value_proposition']
+                    instance.solution = payload['solution']
+                    instance.how_it_works = payload['how_it_works']
+                    instance.impact = payload['impact']
+                    instance.competitors = payload['competitors']
+                    instance.competitive_advantage = payload['competitive_advantage']
+                    instance.save()
+                    instance_status = "Innovation Information Updated"
+                    instance_id = instance.id
+                else:
+                    newinstance = models.InnovationInformation.objects.create(**payload)
+                    instance_status = "Innovation Information Created"
+                    instance_id = newinstance.id
                 
-                newinstance = models.InnovationInformation.objects.create(**payload)
                 
                 user_util.log_account_activity(
-                    authenticated_user, authenticated_user, "Innovation Information created", "Innovation Information Id "  + str(newinstance.id))
+                    authenticated_user, authenticated_user, instance_status, "Innovation Information Id "  + str(instance_id))
                 return Response("success", status=status.HTTP_200_OK)
         else:
             return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    
+    @action(methods=["GET"], detail=False, url_path="get-innovation-information", url_name="get-innovation-information")
+    def get_innovation_information(self, request):
+        innovation_id = request.query_params.get('innovation_id')
+        if not innovation_id:
+            return Response({'details':'Innovation Id Required'},status=status.HTTP_400_BAD_REQUEST)
+        try:
+            information = models.InnovationInformation.objects.get(innovation=innovation_id)
+            information = serializers.InnovationInformationSerializer(information, many=False)
+            
+            return Response(information.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            return Response({'status': False}, status=status.HTTP_200_OK)
 
 
     @action(methods=["POST"], detail=False, url_path="innovation-additional-details",url_name="innovation-additional-details")
     def innovation_additional_details(self, request):
         authenticated_user = request.user
         payload = request.data
-        # print(payload)
-        # payload.update({"creator": authenticated_user.id})
-        # serializer = serializers.InnovationInformationSerializer(data=payload, many=False)
-        # if serializer.is_valid():
         with transaction.atomic():
             innovation = payload['innovation']
             innovation = models.Innovation.objects.get(id=innovation)
@@ -321,14 +360,34 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 }
                 models.InnovationSupportService.objects.create(**to_create)
             
-            # innovation.status = "COMPLETED"
-            # innovation.save()
-            
             user_util.log_account_activity(
                 authenticated_user, authenticated_user, "Innovation Social Links created", "Id "  + str(socialInstance.id))
             return Response("success", status=status.HTTP_200_OK)
-        # else:
-        #     return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    
+    @action(methods=["GET"], detail=False, url_path="get-innovation-additional-details", url_name="get-innovation-additional-details")
+    def get_innovation_additional_details(self, request):
+        innovation_id = request.query_params.get('innovation_id')
+        if not innovation_id or innovation_id == 'undefined':
+            return Response({'details':'Innovation Id Required'},status=status.HTTP_400_BAD_REQUEST)
+        try:
+            support_service = []
+            services =  models.InnovationSupportService.objects.filter(innovation=innovation_id)
+            # services = serializers.InnovationSupportServiceSerializer(services, many=True)
+            for service in services:
+                print(service.service)
+                support_service.append(service.service.service)
+            print(support_service)
+            links = models.InnovationSocialLinks.objects.get(innovation=innovation_id)
+            links = serializers.InnovationSocialLinksSerializer(links, many=False).data
+            links.update({"support_service":support_service})
+            print(links)
+            return Response(links, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            return Response({}, status=status.HTTP_200_OK)
+
+
 
 
     @action(methods=["POST"], detail=False, url_path="complete-innovation",url_name="complete-innovation")

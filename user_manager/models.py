@@ -21,6 +21,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     last_name = models.CharField(max_length=50)
     register_as = models.CharField(max_length=50)
     hear_about_us = models.CharField(max_length=255, blank=True,null=True)
+    hear_about_us_other = models.CharField(max_length=255, blank=True,null=True)
     accepted_terms = models.BooleanField(default=False)
     newsletter = models.BooleanField(default=False)
     verified_email = models.BooleanField(default=False)
