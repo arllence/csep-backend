@@ -162,6 +162,10 @@ class AccountActivitySerializer(serializers.Serializer):
 
 class OtpSerializer(serializers.Serializer):
     otp = serializers.CharField()
+    email = serializers.CharField()
+
+class ResendOtpSerializer(serializers.Serializer):
+    email = serializers.CharField()
 
 
 # class AccountActivityDetailSerializer(serializers.ModelSerializer):

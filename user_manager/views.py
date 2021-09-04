@@ -41,7 +41,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
     @action(methods=["POST"], detail=False, url_path="login", url_name="login")
     def login_user(self, request):
         payload = request.data
-        print(payload)
+        # print(payload)
         email = request.data.get('email')
         password = request.data.get('password')
         if email is None:
@@ -63,6 +63,14 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                 change_password = True
             else:
                 change_password = is_authenticated.is_defaultpassword
+            
+            verified_email = is_authenticated.verified_email
+            if not verified_email:
+                response_info = {
+                    'verified_email': False,
+                    'email': is_authenticated.email
+                }
+                return Response(response_info, status=status.HTTP_200_OK)
 
             is_suspended = is_authenticated.is_suspended
             if is_suspended is True or is_suspended is None:
@@ -98,7 +106,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
     @action(methods=["POST"], detail=False, url_path="create-account", url_name="create-account")
     def create_account(self, request):
         payload = request.data
-        print(payload)
+        # print(payload)
         serializer = serializers.CreateUserSerializer(data=payload, many=False)
         if serializer.is_valid():
             with transaction.atomic():
@@ -210,6 +218,78 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
             return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
     
+    @action(methods=["POST"], detail=False, url_path="verify-email", url_name="verify-email")
+    def verify_email(self, request):
+        payload = request.data
+
+        serializer = serializers.OtpSerializer(data=payload, many=False)
+
+        if serializer.is_valid():
+            with transaction.atomic():
+                otp = payload['otp']
+                email = payload['email']
+                print(otp)
+                try:
+                    check = models.OtpCodes.objects.get(otp=otp)
+                    user = get_user_model().objects.get(email=email)
+                    user.verified_email = True
+                    user.save()
+                    check.delete()
+
+                    payload = {
+                    'id': str(user.id),
+                    'email': user.email,
+                    'name': user.first_name,
+                    "verified_email": user.verified_email,
+                    'superuser': user.is_superuser,
+                    'exp': datetime.utcnow() + timedelta(seconds=settings.TOKEN_EXPIRY),
+                    'iat': datetime.utcnow()
+                    }
+                
+                    token = jwt.encode(payload, settings.TOKEN_SECRET_CODE)
+                    info = {
+                        "token": token
+                    }
+                    return Response(info, status=status.HTTP_200_OK)
+                except Exception as e:
+                    print(e)
+                    return Response({'details':
+                                     'Incorrect OTP Code'},
+                                    status=status.HTTP_400_BAD_REQUEST)
+
+    
+    @action(methods=["POST"], detail=False, url_path="resend-otp", url_name="resend-otp")
+    def resend_otp(self, request):
+        payload = request.data
+
+        serializer = serializers.OtpSerializer(data=payload, many=False)
+
+        if serializer.is_valid():
+            with transaction.atomic():
+                otp = payload['otp']
+                email = payload['email']
+                                
+                try:
+                    user = get_user_model().objects.get(email=email)
+                    recipient = user.email
+                    name = user.first_name
+                    subject = "Activate Your IEN-AFRICA Account"
+                    otp = random.randint(1000,100000)
+                    message =f"Hi {name}, thanks for joining us \nJust one more step...\nHere is your OTP verification code: {otp}"
+                    try:
+                        existing_otp = models.OtpCodes.objects.get(recipient=user)
+                        existing_otp.delete()
+                    except Exception as e:
+                        print(e)
+                    print(message)
+                    models.OtpCodes.objects.create(recipient=user,otp=otp)
+                    mail=user_util.sendmail(recipient,subject,message)
+                except Exception as e:
+                    print(e)
+                return Response('success', status=status.HTTP_200_OK)
+
+
+    
    
 
 
@@ -237,43 +317,43 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
             return Response({'details':'Invalid User'},status=status.HTTP_400_BAD_REQUEST)
 
 
-    @action(methods=["POST"], detail=False, url_path="verify-email", url_name="verify-email")
-    def verify_email(self, request):
-        payload = request.data
+    # @action(methods=["POST"], detail=False, url_path="verify-email", url_name="verify-email")
+    # def verify_email(self, request):
+    #     payload = request.data
 
-        serializer = serializers.OtpSerializer(data=payload, many=False)
+    #     serializer = serializers.OtpSerializer(data=payload, many=False)
 
-        if serializer.is_valid():
-            with transaction.atomic():
-                otp = payload['otp']
-                print(otp)
-                try:
-                    check = models.OtpCodes.objects.get(otp=otp)
-                    user = get_user_model().objects.get(id=request.user.id)
-                    user.verified_email = True
-                    user.save()
-                    check.delete()
+    #     if serializer.is_valid():
+    #         with transaction.atomic():
+    #             otp = payload['otp']
+    #             print(otp)
+    #             try:
+    #                 check = models.OtpCodes.objects.get(otp=otp)
+    #                 user = get_user_model().objects.get(id=request.user.id)
+    #                 user.verified_email = True
+    #                 user.save()
+    #                 check.delete()
 
-                    payload = {
-                    'id': str(user.id),
-                    'email': user.email,
-                    'name': user.first_name,
-                    "verified_email": user.verified_email,
-                    'superuser': user.is_superuser,
-                    'exp': datetime.utcnow() + timedelta(seconds=settings.TOKEN_EXPIRY),
-                    'iat': datetime.utcnow()
-                    }
+    #                 payload = {
+    #                 'id': str(user.id),
+    #                 'email': user.email,
+    #                 'name': user.first_name,
+    #                 "verified_email": user.verified_email,
+    #                 'superuser': user.is_superuser,
+    #                 'exp': datetime.utcnow() + timedelta(seconds=settings.TOKEN_EXPIRY),
+    #                 'iat': datetime.utcnow()
+    #                 }
                 
-                    token = jwt.encode(payload, settings.TOKEN_SECRET_CODE)
-                    info = {
-                        "token": token
-                    }
-                    return Response(info, status=status.HTTP_200_OK)
-                except Exception as e:
-                    print(e)
-                    return Response({'details':
-                                     'Incorrect OTP Code'},
-                                    status=status.HTTP_400_BAD_REQUEST)
+    #                 token = jwt.encode(payload, settings.TOKEN_SECRET_CODE)
+    #                 info = {
+    #                     "token": token
+    #                 }
+    #                 return Response(info, status=status.HTTP_200_OK)
+    #             except Exception as e:
+    #                 print(e)
+    #                 return Response({'details':
+    #                                  'Incorrect OTP Code'},
+    #                                 status=status.HTTP_400_BAD_REQUEST)
 
 
     @action(methods=["POST"], detail=False, url_path="create-profile", url_name="create-profile")
@@ -454,34 +534,34 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
             return Response({"details": "Invalid file passed"}, status=status.HTTP_400_BAD_REQUEST)
 
     
-    @action(methods=["POST"], detail=False, url_path="resend-otp", url_name="resend-otp")
-    def resend_otp(self, request):
-        payload = request.data
+    # @action(methods=["POST"], detail=False, url_path="resend-otp", url_name="resend-otp")
+    # def resend_otp(self, request):
+    #     payload = request.data
 
-        serializer = serializers.OtpSerializer(data=payload, many=False)
+    #     serializer = serializers.OtpSerializer(data=payload, many=False)
 
-        if serializer.is_valid():
-            with transaction.atomic():
-                otp = payload['otp']
+    #     if serializer.is_valid():
+    #         with transaction.atomic():
+    #             otp = payload['otp']
                                 
-                try:
-                    user = request.user
-                    recipient = user.email
-                    name = user.first_name
-                    subject = "Activate Your IEN-AFRICA Account"
-                    otp = random.randint(1000,100000)
-                    message =f"Hi {name}, thanks for joining us \nJust one more step...\nHere is your OTP verification code: {otp}"
-                    try:
-                        existing_otp = models.OtpCodes.objects.get(recipient=user)
-                        existing_otp.delete()
-                    except Exception as e:
-                        print(e)
-                    print(message)
-                    models.OtpCodes.objects.create(recipient=user,otp=otp)
-                    mail=user_util.sendmail(recipient,subject,message)
-                except Exception as e:
-                    print(e)
-                return Response('success', status=status.HTTP_200_OK)
+    #             try:
+    #                 user = request.user
+    #                 recipient = user.email
+    #                 name = user.first_name
+    #                 subject = "Activate Your IEN-AFRICA Account"
+    #                 otp = random.randint(1000,100000)
+    #                 message =f"Hi {name}, thanks for joining us \nJust one more step...\nHere is your OTP verification code: {otp}"
+    #                 try:
+    #                     existing_otp = models.OtpCodes.objects.get(recipient=user)
+    #                     existing_otp.delete()
+    #                 except Exception as e:
+    #                     print(e)
+    #                 print(message)
+    #                 models.OtpCodes.objects.create(recipient=user,otp=otp)
+    #                 mail=user_util.sendmail(recipient,subject,message)
+    #             except Exception as e:
+    #                 print(e)
+    #             return Response('success', status=status.HTTP_200_OK)
 
 
     @action(methods=["POST"], detail=False, url_path="change-password", url_name="change-password")
