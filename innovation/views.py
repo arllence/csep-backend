@@ -40,12 +40,15 @@ class InnovationViewSet(viewsets.ModelViewSet):
         try:
             innovation = models.Innovation.objects.filter(creator=request.user,status="ONGOING")
             # print(innovation)
-            innovation = serializers.InnovationSerializer(innovation, many=True)
-            response_info = {
-                "innovation_details" : innovation.data,
-                "id" : innovation.data[0]['id']
-            }
-            return Response(response_info, status=status.HTTP_200_OK)
+            if innovation:
+                innovation = serializers.InnovationSerializer(innovation, many=True)
+                response_info = {
+                    "innovation_details" : innovation.data,
+                    "id" : innovation.data[0]['id']
+                }
+                return Response(response_info, status=status.HTTP_200_OK)
+            else:
+                return Response({}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'details':'Error fetching'},status=status.HTTP_400_BAD_REQUEST)
 

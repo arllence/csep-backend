@@ -78,6 +78,49 @@ class SkillsSerializer(serializers.ModelSerializer):
         model = models.Skills
         fields = '__all__'
 
+class CreateCertificationSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    expiration_date = serializers.CharField(allow_blank=True, allow_null=True)
+
+class DeleteCertificationSerializer(serializers.Serializer):
+    cert_id = serializers.CharField()
+
+class CertificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Certification
+        fields = '__all__'
+
+class AssociationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Association
+        fields = '__all__'
+
+class CreateAssociationSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    role = serializers.CharField()
+
+class DeleteAssociationSerializer(serializers.Serializer):
+    association_id = serializers.CharField()
+class HobbySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Hobby
+        fields = '__all__'
+
+class HobbySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Hobby
+        fields = '__all__'
+
+class CreateHobbySerializer(serializers.Serializer):
+    name = serializers.CharField()
+
+class DeleteHobbySerializer(serializers.Serializer):
+    hobby_id = serializers.CharField()
+class EducationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Education
+        fields = '__all__'
+
 class ProfilePictureSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.ProfilePicture
@@ -126,30 +169,90 @@ class UserProfileSerializer(serializers.Serializer):
     profile_info = serializers.SerializerMethodField('get_profile_info')
     skills = serializers.SerializerMethodField('get_skills')
     profile_picture = serializers.SerializerMethodField('get_profile_picture')
+    education = serializers.SerializerMethodField('get_education')
+    certification = serializers.SerializerMethodField('get_certification')
+    association = serializers.SerializerMethodField('get_association')
+    hobby = serializers.SerializerMethodField('get_hobby')
 
     def get_profile_info(self, obj):
-        current_user = obj
-        profile = models.UserInfo.objects.get(user=current_user)
-        serializer = ProfileInfoSerializer(profile, many=False)
-        return serializer.data
+        try:
+            current_user = obj
+            profile = models.UserInfo.objects.get(user=current_user)
+            serializer = ProfileInfoSerializer(profile, many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
     
     def get_profile_picture(self, obj):
-        current_user = obj
-        profile = models.ProfilePicture.objects.filter(user=current_user, status=True)
-        serializer = ProfilePictureSerializer(profile[0], many=False)
-        return serializer.data
+        try:
+            current_user = obj
+            profile = models.ProfilePicture.objects.filter(user=current_user, status=True)
+            serializer = ProfilePictureSerializer(profile[0], many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
 
     def get_skills(self, obj):
-        current_user = obj
-        skills = models.Skills.objects.filter(user=current_user)
-        serializer = SkillsSerializer(skills, many=True)
-        return serializer.data
+        try:
+            current_user = obj
+            skills = models.Skills.objects.filter(user=current_user)
+            serializer = SkillsSerializer(skills, many=True)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+
+    def get_certification(self, obj):
+        try:
+            current_user = obj
+            certification = models.Certification.objects.filter(user=current_user, status=True).order_by('-date_created')
+            serializer = CertificationSerializer(certification, many=True)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+
+    def get_association(self, obj):
+        try:
+            current_user = obj
+            association = models.Association.objects.filter(user=current_user, status=True).order_by('-date_created')
+            serializer = AssociationSerializer(association, many=True)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+
+    def get_hobby(self, obj):
+        try:
+            current_user = obj
+            hobby = models.Hobby.objects.filter(user=current_user, status=True).order_by('-date_created')
+            serializer = HobbySerializer(hobby, many=True)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+
+    def get_education(self, obj):
+        try:
+            current_user = obj
+            education = models.Education.objects.get(user=current_user)
+            serializer = EducationSerializer(education, many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
 
     def get_user(self, obj):
-        current_user = obj
-        user = get_user_model().objects.get(id=current_user.id)
-        serializer = UsersSerializer(user, many=False)
-        return serializer.data
+        try:
+            current_user = obj
+            user = get_user_model().objects.get(id=current_user.id)
+            serializer = UsersSerializer(user, many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
 
 
 class SuspendUserSerializer(serializers.Serializer):

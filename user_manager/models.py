@@ -81,6 +81,76 @@ class UserInfo(models.Model):
     def __str__(self):
         return str(self.id)
 
+class Education(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="user_education_profile"
+    )
+    institution_name = models.CharField(max_length=255)
+    course_name = models.CharField(max_length=255, null=True, blank=True)
+    grade = models.CharField(max_length=255, null=True, blank=True)
+    study_summary = models.TextField(null=True, blank=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        app_label = "user_manager"
+        db_table = "education"
+
+    def __str__(self):
+        return str(self.institution_name)
+
+
+class Certification(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="user_certifications"
+    )
+    name = models.CharField(max_length=255)
+    expiration_date = models.CharField(max_length=50, null=True, blank=True)
+    status = models.BooleanField(default=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        app_label = "user_manager"
+        db_table = "certifications"
+
+    def __str__(self):
+        return str(self.name)
+
+
+class Association(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="user_Associations"
+    )
+    name = models.CharField(max_length=255)
+    role = models.CharField(max_length=255)
+    status = models.BooleanField(default=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        app_label = "user_manager"
+        db_table = "associations"
+
+    def __str__(self):
+        return str(self.name)
+
+
+class Hobby(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="user_hobbies"
+    )
+    name = models.CharField(max_length=255)
+    status = models.BooleanField(default=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        app_label = "user_manager"
+        db_table = "hobbies"
+
+    def __str__(self):
+        return str(self.name)
 
 class ProfilePicture(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

@@ -1,3 +1,7 @@
+import json
+import jwt
+import random
+import re
 import app_manager
 from rest_framework.views import APIView
 from user_manager import serializers
@@ -9,10 +13,6 @@ from django.contrib.auth.models import Permission
 from rest_framework.parsers import MultiPartParser, JSONParser
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import viewsets, status
-import json
-import jwt
-import random
-import re
 from django.conf import settings
 from django.utils import timezone
 from datetime import datetime, timedelta, date
@@ -199,7 +199,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                     name = create_user.first_name
                     subject = "Activate Your IEN-AFRICA Account"
                     otp = random.randint(1000,100000)
-                    message =f'Hi {name}, thanks for joining us \njust one more step.\n Here is your OTP verification code: {otp}'
+                    message =f'Hi {name}, thanks for joining us, \njust one more step.\n Here is your OTP verification code: {otp}'
                     try:
                         existing_otp = models.OtpCodes.objects.get(recipient=create_user)
                         existing_otp.delete()
@@ -236,26 +236,29 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                     user.save()
                     check.delete()
 
-                    payload = {
-                    'id': str(user.id),
-                    'email': user.email,
-                    'name': user.first_name,
-                    "verified_email": user.verified_email,
-                    'superuser': user.is_superuser,
-                    'exp': datetime.utcnow() + timedelta(seconds=settings.TOKEN_EXPIRY),
-                    'iat': datetime.utcnow()
-                    }
+                    # payload = {
+                    # 'id': str(user.id),
+                    # 'email': user.email,
+                    # 'name': user.first_name,
+                    # "verified_email": user.verified_email,
+                    # 'superuser': user.is_superuser,
+                    # 'exp': datetime.utcnow() + timedelta(seconds=settings.TOKEN_EXPIRY),
+                    # 'iat': datetime.utcnow()
+                    # }
                 
-                    token = jwt.encode(payload, settings.TOKEN_SECRET_CODE)
-                    info = {
-                        "token": token
-                    }
-                    return Response(info, status=status.HTTP_200_OK)
+                    # token = jwt.encode(payload, settings.TOKEN_SECRET_CODE)
+                    # info = {
+                    #     "token": token
+                    # }
+                    return Response('Success', status=status.HTTP_200_OK)
                 except Exception as e:
                     print(e)
                     return Response({'details':
                                      'Incorrect OTP Code'},
-                                    status=status.HTTP_400_BAD_REQUEST)
+                                  status=status.HTTP_400_BAD_REQUEST)
+
+        else:
+            return Response({'details':serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
     
     @action(methods=["POST"], detail=False, url_path="resend-otp", url_name="resend-otp")
@@ -287,6 +290,8 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                 except Exception as e:
                     print(e)
                 return Response('success', status=status.HTTP_200_OK)
+        else:
+            return Response({'details':serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
     
@@ -361,11 +366,13 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
         payload = request.data
         authenticated_user = request.user
 
-        print(payload)
+        # print(payload)
 
         serializer = serializers.CreateProfileSerializer(data=payload, many=False)
         if serializer.is_valid():
-            # return True
+            for key in payload:
+                if not payload[key]:
+                    payload[key] = None
             with transaction.atomic():
                 email = payload['email']
                 first_name = payload['first_name'].capitalize()
@@ -384,10 +391,22 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                 level_of_education = payload['level_of_education']
                 employment = payload['employment']
                 skills = payload['skills']
+                institution_name = payload['institution_name']
+                course_name = payload['course_name']
+                grade = payload['grade']
+                study_summary = payload['study_summary']
 
                 authenticated_user.first_name = first_name
                 authenticated_user.last_name = last_name
                 authenticated_user.save()
+
+                education = {
+                    "user": authenticated_user,
+                    "institution_name" : institution_name,
+                    "course_name" : course_name,
+                    "grade" : grade,
+                    "study_summary" : study_summary,
+                }
 
                 user_exists = models.CompletedProfile.objects.filter(user=authenticated_user).exists()
                 if user_exists:
@@ -421,6 +440,18 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
 
                             models.Skills.objects.create(**to_create)
                     
+                    try:
+                        education = models.Education.objects.get(user=authenticated_user)
+                        education.institution_name = institution_name 
+                        education.course_name = course_name
+                        education.grade = grade
+                        education.study_summary = study_summary
+                        education.save()
+                    except Exception as e:
+                        print(e)
+                        models.Education.objects.create(**education)
+
+                    
                 else:
                     profile = {
                         "user": authenticated_user,
@@ -447,10 +478,15 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                         }
                         models.Skills.objects.create(**to_create)
 
+                    
+                    # save education details
+                    models.Education.objects.create(**education)
+                    # save completed profile status
                     models.CompletedProfile.objects.create(user=authenticated_user)
 
                 return Response("succees", status=status.HTTP_200_OK)
-
+        else:
+            return Response({'details':serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=["GET"], detail=False, url_path="user-profile", url_name="user-profile")
     def user_profile(self, request):
@@ -461,6 +497,209 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(e)
             return Response({'details':'Error Geting Profile'},status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["POST"], detail=False, url_path="create-certification", url_name="create-certification")
+    def create_certification(self, request):
+        payload = request.data
+        authenticated_user = request.user
+
+        # print(payload)
+
+        serializer = serializers.CreateCertificationSerializer(data=payload, many=False)
+        if serializer.is_valid():
+            for key in payload:
+                if not payload[key]:
+                    payload[key] = None
+            with transaction.atomic():
+                name = payload['name']
+                expiration_date = payload['expiration_date']    
+
+                cert_id = None
+                try:
+                    cert_id = payload['cert_id']  
+                except Exception as e:
+                    pass  
+
+                if cert_id:
+                    cert = models.Certification.objects.get(id=cert_id) 
+                    cert.name=name 
+                    cert.expiration_date=expiration_date
+                    cert.save()
+                else:        
+                    raw = {
+                        "user": authenticated_user,
+                        "name" : name,
+                        "expiration_date" : expiration_date
+                    }
+                    models.Certification.objects.create(**raw) 
+
+                return Response("succees", status=status.HTTP_200_OK)
+        else:
+            return Response({'details':serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["GET"], detail=False, url_path="get-certifications", url_name="get-certifications")
+    def get_certifications(self, request):
+        authenticated_user = request.user
+        try:
+            data = models.Certification.objects.filter(user=authenticated_user, status=True).order_by('-date_created')
+            serializer = serializers.CertificationSerializer(data, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            return Response({'details':'Error Geting Certifications'},status=status.HTTP_400_BAD_REQUEST)
+
+    
+
+
+    @action(methods=["POST"], detail=False, url_path="delete-certification", url_name="delete-certification")
+    def delete_certification(self, request):
+        payload = request.data
+        authenticated_user = request.user
+
+        serializer = serializers.DeleteCertificationSerializer(data=payload, many=False)
+        if serializer.is_valid():
+            with transaction.atomic():
+                cert_id = payload['cert_id']
+
+                cert = models.Certification.objects.get(id=cert_id)
+                cert.status = False
+                cert.save()
+                return Response('success', status=status.HTTP_200_OK)
+        else:
+            return Response({'details':serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+                
+    # ASSOCIATION
+    
+    @action(methods=["POST"], detail=False, url_path="create-association", url_name="create-association")
+    def create_association(self, request):
+        payload = request.data
+        authenticated_user = request.user
+
+        serializer = serializers.CreateAssociationSerializer(data=payload, many=False)
+        if serializer.is_valid():
+            with transaction.atomic():
+                name = payload['name']
+                role = payload['role']    
+
+                association_id = None
+                try:
+                    association_id = payload['association_id']  
+                except Exception as e:
+                    pass  
+
+                if association_id:
+                    association = models.Association.objects.get(id=association_id) 
+                    association.name=name 
+                    association.role=role
+                    association.save()
+                else:        
+                    raw = {
+                        "user": authenticated_user,
+                        "name" : name,
+                        "role" : role
+                    }
+                    models.Association.objects.create(**raw) 
+
+                return Response("succees", status=status.HTTP_200_OK)
+        else:
+            return Response({'details':serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["GET"], detail=False, url_path="get-associations", url_name="get-associations")
+    def get_association(self, request):
+        authenticated_user = request.user
+        try:
+            data = models.Association.objects.filter(user=authenticated_user, status=True).order_by('-date_created')
+            serializer = serializers.AssociationSerializer(data, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            return Response({'details':'Error Geting Associations'},status=status.HTTP_400_BAD_REQUEST)
+  
+
+
+    @action(methods=["POST"], detail=False, url_path="delete-association", url_name="delete-association")
+    def delete_association(self, request):
+        payload = request.data
+
+        serializer = serializers.DeleteAssociationSerializer(data=payload, many=False)
+        if serializer.is_valid():
+            with transaction.atomic():
+                association_id = payload['association_id']
+
+                association = models.Association.objects.get(id=association_id)
+                association.status = False
+                association.save()
+                return Response('success', status=status.HTTP_200_OK)
+        else:
+            return Response({'details':serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+                
+
+    # HOBBY
+    
+    @action(methods=["POST"], detail=False, url_path="create-hobby", url_name="create-hobby")
+    def create_hobby(self, request):
+        payload = request.data
+        authenticated_user = request.user
+
+        serializer = serializers.CreateHobbySerializer(data=payload, many=False)
+        if serializer.is_valid():
+            with transaction.atomic():
+                name = payload['name']  
+
+                hobby_id = None
+                try:
+                    hobby_id = payload['hobby_id']  
+                except Exception as e:
+                    pass  
+
+                if hobby_id:
+                    hobby = models.Hobby.objects.get(id=hobby_id) 
+                    hobby.name=name 
+                    hobby.save()
+                else:        
+                    raw = {
+                        "user": authenticated_user,
+                        "name" : name
+                    }
+                    models.Hobby.objects.create(**raw) 
+
+                return Response("succees", status=status.HTTP_200_OK)
+        else:
+            return Response({'details':serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["GET"], detail=False, url_path="get-hobbies", url_name="get-hobbies")
+    def get_hobbies(self, request):
+        authenticated_user = request.user
+        try:
+            data = models.Hobby.objects.filter(user=authenticated_user, status=True).order_by('-date_created')
+            serializer = serializers.HobbySerializer(data, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            return Response({'details':'Error Geting Hobbies'},status=status.HTTP_400_BAD_REQUEST)
+  
+
+
+    @action(methods=["POST"], detail=False, url_path="delete-hobby", url_name="delete-hobby")
+    def delete_hobby(self, request):
+        payload = request.data
+
+        serializer = serializers.DeleteHobbySerializer(data=payload, many=False)
+        if serializer.is_valid():
+            with transaction.atomic():
+                hobby_id = payload['hobby_id']
+
+                hobby = models.Hobby.objects.get(id=hobby_id)
+                hobby.status = False
+                hobby.save()
+                return Response('success', status=status.HTTP_200_OK)
+        else:
+            return Response({'details':serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+                
 
 
     @action(methods=["POST"], detail=False, url_path="upload-document", url_name="upload-document")

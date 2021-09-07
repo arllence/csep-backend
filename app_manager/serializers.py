@@ -31,3 +31,15 @@ class IntellectualPropertySerializer(serializers.ModelSerializer):
     class Meta:
         model = models.IntellectualProperty
         fields = '__all__'
+
+
+class SkillsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Skills
+        fields = '__all__'
+
+
+class EmploymentStatusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.EmploymentStatus
+        fields = '__all__'
