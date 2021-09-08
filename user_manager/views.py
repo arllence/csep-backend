@@ -265,11 +265,10 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
     def resend_otp(self, request):
         payload = request.data
 
-        serializer = serializers.OtpSerializer(data=payload, many=False)
+        serializer = serializers.ResendOtpSerializer(data=payload, many=False)
 
         if serializer.is_valid():
             with transaction.atomic():
-                otp = payload['otp']
                 email = payload['email']
                                 
                 try:
