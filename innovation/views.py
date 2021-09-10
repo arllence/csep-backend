@@ -365,24 +365,23 @@ class InnovationViewSet(viewsets.ModelViewSet):
         authenticated_user = request.user
         payload = request.data
         print(payload)
-        # d = models.InnovationSocialLinks.objects.filter(innovation=payload['innovation']).delete()
-        # print(d)
-        # for instance in d:
-        #     instance = models.InnovationSocialLinks.objects.get(id=instance.id)
-        #     print(instance)
-        #     instance.delete()
-
-        # d = models.InnovationSocialLinks.objects.filter(innovation=payload['innovation'])
-        # print("another d\n" , d)
-        # return True
         with transaction.atomic():
             innovation_id = payload['innovation']
             innovation = models.Innovation.objects.get(id=innovation_id)
             payload['innovation'] = innovation
 
+            support_services = []
+                
+            try:
+                support_services = payload['support_service']
+            except Exception as e:
+                print(e)
+
+            del payload['support_service']
+
+
             links_exists =  models.InnovationSocialLinks.objects.filter(innovation=innovation_id).exists()
             if links_exists:
-                print("Yes")
                 instance = models.InnovationSocialLinks.objects.get(innovation=innovation_id)
                 instance.facebook = payload['facebook']
                 instance.twitter = payload['twitter']
@@ -390,18 +389,19 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 instance.linkedin = payload['linkedin']
                 instance.website = payload['website']
                 instance.save()
+
+                for service in support_services:
+                    service = app_manager_models.SupportServices.objects.get(id=int(service))
+                    if models.InnovationSupportService.objects.filter(service=service).exists():
+                        pass
+                    else:
+                        to_create = {
+                            "innovation" : innovation,
+                            "service" : service
+                        }
+                        models.InnovationSupportService.objects.create(**to_create)
                 return Response("success", status=status.HTTP_200_OK)
-            else:
-                support_services = []
-                
-                try:
-                    support_services = payload['support_service']
-                    # print(support_services)
-                except Exception as e:
-                    print(e)
-
-                del payload['support_service']
-
+            else:                
                 socialInstance = models.InnovationSocialLinks.objects.create(**payload)
 
                 for service in support_services:
@@ -429,8 +429,13 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 support_service.append(service.service.service)
 
             links = models.InnovationSocialLinks.objects.filter(innovation=innovation_id)
-            links = serializers.InnovationSocialLinksSerializer(links, many=True).data
+            try:
+                links = serializers.InnovationSocialLinksSerializer(links[0], many=False).data
+            except Exception as e:
+                print(e)
+                links = []
             links.update({"support_service":support_service})
+            # print(links)
             return Response(links, status=status.HTTP_200_OK)
         except Exception as e:
             print(e)

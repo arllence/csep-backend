@@ -264,6 +264,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
     @action(methods=["POST"], detail=False, url_path="resend-otp", url_name="resend-otp")
     def resend_otp(self, request):
         payload = request.data
+        print(payload)
 
         serializer = serializers.ResendOtpSerializer(data=payload, many=False)
 
