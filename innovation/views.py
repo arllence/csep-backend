@@ -53,6 +53,22 @@ class InnovationViewSet(viewsets.ModelViewSet):
             return Response({'details':'Error fetching'},status=status.HTTP_400_BAD_REQUEST)
 
     
+    @action(methods=["GET"], detail=False, url_path="innovations", url_name="innovations")
+    def innovations(self, request):
+        try:
+            innovation = models.Innovation.objects.exclude(status__in=('DROPED','ONGOING'))
+            # print(innovation)
+            if innovation:
+                innovations = serializers.FullInnovationSerializer(innovation, many=True).data
+
+                return Response(innovations, status=status.HTTP_200_OK)
+            else:
+                return Response({}, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            return Response({'details':'Error fetching'},status=status.HTTP_400_BAD_REQUEST)
+
+    
     @action(methods=["GET"], detail=False, url_path="my-innovations", url_name="my-innovations")
     def my_innovations(self, request):
         try:
