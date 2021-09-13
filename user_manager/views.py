@@ -57,12 +57,12 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
         if is_authenticated: 
             last_password_reset = is_authenticated.last_password_reset
             now_date = datetime.now(timezone.utc)
-            last_reset = (now_date - last_password_reset).days
+            # last_reset = (now_date - last_password_reset).days
          
-            if last_reset >= 30:
-                change_password = True
-            else:
-                change_password = is_authenticated.is_defaultpassword
+            # if last_reset >= 30:
+            #     change_password = True
+            # else:
+            #     change_password = is_authenticated.is_defaultpassword
             
             verified_email = is_authenticated.verified_email
             if not verified_email:
@@ -83,7 +83,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                     'name': is_authenticated.first_name,
                     'first_name': is_authenticated.first_name,
                     'last_name': is_authenticated.last_name,
-                    'password_change_status': change_password,
+                    # 'password_change_status': change_password,
                     "verified_email": is_authenticated.verified_email,
                     "completed_profile":completed_profile,
                     'superuser': is_authenticated.is_superuser,
@@ -95,7 +95,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                 token = jwt.encode(payload, settings.TOKEN_SECRET_CODE)
                 response_info = {
                     "token": token,
-                    "change_password": change_password,
+                    # "change_password": change_password,
                     "verified_email": is_authenticated.verified_email
                 }
                 return Response(response_info, status=status.HTTP_200_OK)

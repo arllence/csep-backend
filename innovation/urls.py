@@ -5,5 +5,6 @@ from innovation import views
 
 router = DefaultRouter(trailing_slash=False)
 
-router.register('innovation',views.InnovationViewSet, basename='admin-management')
+router.register('innovation',views.InnovationViewSet, basename='innovation')
+router.register('evaluation',views.EvaluationViewSet, basename='evaluation')
 urlpatterns = router.urls

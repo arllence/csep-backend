@@ -182,3 +182,56 @@ class InnovationSupportService(models.Model):
 
     def __str__(self):
         return str(self.id)
+
+
+class Evaluation(models.Model):
+    innovation = models.ForeignKey(
+       Innovation, on_delete=models.CASCADE, related_name="evaluation"
+    )
+    innovation_brief_score = models.IntegerField()
+    innovation_brief_observation = models.TextField()
+    innovation_brief_comment = models.TextField()
+    problem_statement_score = models.IntegerField()
+    problem_statement_observation = models.TextField()
+    problem_statement_comment = models.TextField()
+    solution_score = models.IntegerField()
+    solution_observation = models.TextField()
+    solution_comment = models.TextField()
+    how_it_works_score = models.IntegerField()
+    how_it_works_observation = models.TextField()
+    how_it_works_comment = models.TextField()
+    target_customers_score = models.IntegerField()
+    target_customers_observation = models.TextField()
+    target_customers_comment = models.TextField()
+    value_proposition_score = models.IntegerField()
+    value_proposition_observation = models.TextField()
+    value_proposition_comment = models.TextField()
+    competitive_advantage_score = models.IntegerField()
+    competitive_advantage_observation = models.TextField()
+    competitive_advantage_comment = models.TextField()
+    background_research_score = models.IntegerField()
+    background_research_observation = models.TextField()
+    background_research_comment = models.TextField()
+    impact_score = models.IntegerField()
+    impact_observation = models.TextField()
+    impact_comment = models.TextField()
+    competitors_score = models.TextField()
+    competitors_observation = models.TextField()
+    competitors_comment = models.TextField()
+    final_observation = models.TextField()
+    final_comment = models.TextField()
+    total_score = models.IntegerField()
+    outcome = models.CharField(max_length=100, default=None)
+    status = models.BooleanField(default=True)    
+    date_created = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        total_scores = self.innovation_brief_score + self.problem_statement_score + self.solution_score + self.how_it_works_score + self.target_customers_score + self.value_proposition_score + self.competitive_advantage_score + self.background_research_score + self.impact_score + self.competitors_score
+        self.total_score = total_scores
+        super().save(*args, **kwargs)
+    class Meta:
+        app_label = "innovation"
+        db_table = "evaluations"
+
+    def __str__(self):
+        return str(self.name)

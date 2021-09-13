@@ -476,3 +476,50 @@ class InnovationViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(e)
             return Response({'details':'Error fetching review'},status=status.HTTP_400_BAD_REQUEST)
+
+class EvaluationViewSet(viewsets.ModelViewSet):
+    permission_classes = (IsAuthenticated,)
+    parser_classes = (MultiPartParser,JSONParser)
+    queryset = models.Evaluation.objects.all().order_by('id')
+    serializer_class = serializers.SystemUsersSerializer
+    search_fields = ['id', ]
+
+    def get_queryset(self):
+        return []
+
+    @action(methods=["POST"], detail=False, url_path="create-evaluation",url_name="create-evaluation")
+    def evaluation(self, request):
+        authenticated_user = request.user
+        payload = request.data
+        print(payload)
+
+        serializer = serializers.CreateEvaluationSerializer(data=payload, many=False)
+        if serializer.is_valid():
+            with transaction.atomic():
+                try:
+                    innovation_id = payload['innovation']
+                    innovation = models.Innovation.objects.get(id=innovation_id)
+                    payload['innovation'] = innovation
+                except Exception as e:
+                    print(e)
+                    return Response({"details": "Incorrect Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)
+
+                try:
+                    for key in payload:
+                        if 'score' in key:
+                            print(key)
+                            payload[key] = int(payload[key])
+                except Exception as e:
+                    print(e)
+                
+                print(payload)
+
+                newinstance = models.Evaluation.objects.create(**payload)
+                innovation.status = "EVALUATED"
+                innovation.save()
+               
+                user_util.log_account_activity(
+                    authenticated_user, authenticated_user, "Evaluation created. Id: " + str(newinstance.id) , "Evaluation Creation Executed")
+                return Response("success", status=status.HTTP_200_OK)
+        else:
+            return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)

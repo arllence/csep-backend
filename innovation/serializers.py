@@ -163,3 +163,9 @@ class FullInnovationSerializer(serializers.ModelSerializer):
         except Exception as e:
             print(e)
             return []
+
+class CreateEvaluationSerializer(serializers.ModelSerializer):  
+    class Meta:
+        model = models.Evaluation
+        fields = '__all__'
+        # exclude = ('status', 'date_created')
