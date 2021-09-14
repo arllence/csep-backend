@@ -185,6 +185,7 @@ class InnovationSupportService(models.Model):
 
 
 class Evaluation(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     innovation = models.ForeignKey(
        Innovation, on_delete=models.CASCADE, related_name="evaluation"
     )

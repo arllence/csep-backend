@@ -500,6 +500,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     innovation_id = payload['innovation']
                     innovation = models.Innovation.objects.get(id=innovation_id)
                     payload['innovation'] = innovation
+                    update = models.Evaluation.objects.filter(innovation=innovation_id).exists()
                 except Exception as e:
                     print(e)
                     return Response({"details": "Incorrect Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)
@@ -507,19 +508,42 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 try:
                     for key in payload:
                         if 'score' in key:
-                            print(key)
                             payload[key] = int(payload[key])
                 except Exception as e:
                     print(e)
                 
                 print(payload)
 
-                newinstance = models.Evaluation.objects.create(**payload)
-                innovation.status = "EVALUATED"
-                innovation.save()
+                if update:
+                    del payload['innovation']
+                    models.Evaluation.objects.filter(innovation=innovation_id).update(**payload)
+                    action = "Updated"
+                else:
+                    newinstance = models.Evaluation.objects.create(**payload)
+                    innovation.status = "EVALUATED"
+                    innovation.save()
+                    action = "Created"
                
                 user_util.log_account_activity(
-                    authenticated_user, authenticated_user, "Evaluation created. Id: " + str(newinstance.id) , "Evaluation Creation Executed")
+                    authenticated_user, authenticated_user, f"Evaluation {action}. Id: " + str(innovation_id) , f"Evaluation {action} Executed")
                 return Response("success", status=status.HTTP_200_OK)
         else:
             return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["GET"], detail=False, url_path="is-evaluated", url_name="is-evaluated")
+    def is_evaluated(self, request):
+        innovation_id = request.query_params.get('innovation_id')
+        try:
+            innovation = models.Evaluation.objects.get(innovation=innovation_id)
+            innovation = serializers.CreateEvaluationSerializer(innovation, many=False).data
+            if innovation:
+                innovation.update({"status":True})
+            else:
+                innovation = {
+                    "status":False
+                }            
+            return Response(innovation, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            return Response({'details':'Error Fetching Evaluated'},status=status.HTTP_400_BAD_REQUEST)
