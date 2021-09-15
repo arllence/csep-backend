@@ -169,3 +169,17 @@ class CreateEvaluationSerializer(serializers.ModelSerializer):
         model = models.Evaluation
         fields = '__all__'
         # exclude = ('status', 'date_created')
+
+class CreateNoteSerializer(serializers.Serializer):
+    innovation = serializers.CharField()
+    title = serializers.CharField()
+    note = serializers.CharField()
+
+class NoteSerializer(serializers.ModelSerializer):  
+    innovation = InnovationSerializer()
+    class Meta:
+        model = models.Note
+        fields = '__all__'
+
+class DeleteNoteSerializer(serializers.Serializer):
+    note_id = serializers.CharField()

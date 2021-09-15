@@ -236,3 +236,24 @@ class Evaluation(models.Model):
 
     def __str__(self):
         return str(self.name)
+
+
+class Note(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    innovation = models.ForeignKey(
+       Innovation, on_delete=models.CASCADE, related_name="notes"
+    )
+    created_by =models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="note_creator"
+    )
+    title = models.CharField(max_length=255)
+    note = models.TextField()
+    status = models.BooleanField(default=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        app_label = "innovation"
+        db_table = "notes"
+
+    def __str__(self):
+        return str(self.id)

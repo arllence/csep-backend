@@ -66,7 +66,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 return Response({}, status=status.HTTP_200_OK)
         except Exception as e:
             print(e)
-            return Response({'details':'Error fetching'},status=status.HTTP_400_BAD_REQUEST)
+            return Response({'details':'Error Fetching Innovations'},status=status.HTTP_400_BAD_REQUEST)
 
     
     @action(methods=["GET"], detail=False, url_path="my-innovations", url_name="my-innovations")
@@ -535,7 +535,11 @@ class EvaluationViewSet(viewsets.ModelViewSet):
     def is_evaluated(self, request):
         innovation_id = request.query_params.get('innovation_id')
         try:
-            innovation = models.Evaluation.objects.get(innovation=innovation_id)
+            try:
+                innovation = models.Evaluation.objects.get(innovation=innovation_id)
+            except Exception as e:
+                print(e)
+                return Response({"status":False}, status=status.HTTP_200_OK)
             innovation = serializers.CreateEvaluationSerializer(innovation, many=False).data
             if innovation:
                 innovation.update({"status":True})
@@ -547,3 +551,81 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(e)
             return Response({'details':'Error Fetching Evaluated'},status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["POST"], detail=False, url_path="create-note",url_name="create-note")
+    def note(self, request):
+        authenticated_user = request.user
+        payload = request.data
+        print(payload)
+        serializer = serializers.CreateNoteSerializer(data=payload, many=False)
+        if serializer.is_valid():
+            with transaction.atomic():
+                try:
+                    innovation_id = payload['innovation']
+                    innovation = models.Innovation.objects.get(id=innovation_id)
+                    payload['innovation'] = innovation
+                    payload['created_by'] = authenticated_user
+                    if payload['id'] == '':
+                        del payload['id']
+                except Exception as e:
+                    print(e)
+                    return Response({"details": "Incorrect Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)
+                
+                try:
+                    note_id = payload['id']
+                    noteInstance = models.Note.objects.get(id=note_id)
+                    noteInstance.title = payload['title']
+                    noteInstance.note = payload['note']
+                    noteInstance.save()
+                    action = 'Edited'
+                    instance_id = note_id
+                except Exception as e:
+                    print(e)
+                    newinstance = models.Note.objects.create(**payload)
+                    instance_id = newinstance.id
+                    action = 'Created'
+               
+                user_util.log_account_activity(
+                    authenticated_user, authenticated_user, f"Note {action}. Id: " + str(instance_id) , f"Note For {innovation_id} ")
+                return Response("success", status=status.HTTP_200_OK)
+        else:
+            return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            
+
+    @action(methods=["GET"], detail=False, url_path="get-notes", url_name="get-notes")
+    def get_notes(self, request):
+        authenticated_user = request.user
+        try:
+            notes = models.Note.objects.filter(created_by=authenticated_user, status=True).order_by('-date_created')
+     
+            notes = serializers.NoteSerializer(notes, many=True).data
+            
+            return Response(notes, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            return Response({'details':'Error Fetching Notes'},status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["POST"], detail=False, url_path="delete-note", url_name="delete-note")
+    def delete_note(self, request):
+        authenticated_user = request.user
+        payload = request.data
+
+        serializer = serializers.DeleteNoteSerializer(data=payload, many=False)
+        if serializer.is_valid():
+            with transaction.atomic():     
+                try:
+                    note_id = payload['note_id']
+                    noteInstance = models.Note.objects.get(id=note_id)
+                    noteInstance.status = False
+                    noteInstance.save()
+                except Exception as e:
+                    print(e)
+                    return Response({"details": "Error Deleting Note"}, status=status.HTTP_400_BAD_REQUEST)
+               
+                user_util.log_account_activity(
+                    authenticated_user, authenticated_user, f"Note Deleted. Id: " + str(note_id) , f"Note For {noteInstance.innovation.id} ")
+                return Response("success", status=status.HTTP_200_OK)
+        else:
+            return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
