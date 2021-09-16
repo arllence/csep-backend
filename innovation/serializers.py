@@ -183,3 +183,20 @@ class NoteSerializer(serializers.ModelSerializer):
 
 class DeleteNoteSerializer(serializers.Serializer):
     note_id = serializers.CharField()
+
+
+class CreateAssignmentSerializer(serializers.Serializer):
+    innovation = serializers.CharField()
+    title = serializers.CharField()
+    description = serializers.CharField()
+    deadline = serializers.DateField()
+    
+
+class AssignmentSerializer(serializers.ModelSerializer):  
+    innovation = InnovationSerializer()
+    class Meta:
+        model = models.Assignment
+        fields = '__all__'
+
+class DeleteAssignmentSerializer(serializers.Serializer):
+    assignment_id = serializers.CharField()

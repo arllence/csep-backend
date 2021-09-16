@@ -1,4 +1,6 @@
+import json
 from typing import SupportsAbs
+from user_manager.models import Document
 from rest_framework.views import APIView
 from . import models
 from . import serializers 
@@ -503,7 +505,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     update = models.Evaluation.objects.filter(innovation=innovation_id).exists()
                 except Exception as e:
                     print(e)
-                    return Response({"details": "Incorrect Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)
 
                 try:
                     for key in payload:
@@ -570,7 +572,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                         del payload['id']
                 except Exception as e:
                     print(e)
-                    return Response({"details": "Incorrect Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)
                 
                 try:
                     note_id = payload['id']
@@ -626,6 +628,107 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                
                 user_util.log_account_activity(
                     authenticated_user, authenticated_user, f"Note Deleted. Id: " + str(note_id) , f"Note For {noteInstance.innovation.id} ")
+                return Response("success", status=status.HTTP_200_OK)
+        else:
+            return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["POST"], detail=False, url_path="create-assignment",url_name="create-assignment")
+    def assignment(self, request):
+        authenticated_user = request.user
+        payload = request.data['payload']
+        print("payload", payload)
+        payload = json.loads(payload)
+
+        print(payload)
+        # print("request", request.__dict__)
+        # print(payload)
+        serializer = serializers.CreateAssignmentSerializer(data=payload, many=False)
+        if serializer.is_valid():
+            with transaction.atomic():
+                try:
+                    innovation_id = payload['innovation']
+                    innovation = models.Innovation.objects.get(id=innovation_id)
+                    payload['innovation'] = innovation
+                    payload['created_by'] = authenticated_user
+                    if payload['id'] == '':
+                        del payload['id']
+                except Exception as e:
+                    print(e)
+                    return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)
+
+                document = request.FILES
+                print(document)
+
+                try:
+                    for f in request.FILES.getlist('document'):
+                        if f:
+                            print("FIle name", f.name)
+                            payload['file'] = f
+                        else:
+                            payload['file'] = None
+                except Exception as e:
+                    payload['file'] = None
+                    print(e)
+                    
+                
+                
+                try:
+                    assignment_id = payload['id']
+                    assignmentInstance = models.Assignment.objects.get(id=assignment_id)
+                    assignmentInstance.title = payload['title']
+                    assignmentInstance.description = payload['description']
+                    assignmentInstance.deadline = payload['deadline']
+                    assignmentInstance.file = payload['file']
+                    assignmentInstance.save()
+                    action = 'Edited'
+                    instance_id = assignment_id
+                except Exception as e:
+                    print(e)
+                    newinstance = models.Assignment.objects.create(**payload)
+                    instance_id = newinstance.id
+                    action = 'Created'
+               
+                user_util.log_account_activity(
+                    authenticated_user, authenticated_user, f"Assignment {action}. Id: " + str(instance_id) , f"Assignment For {innovation_id} ")
+                return Response("success", status=status.HTTP_200_OK)
+        else:
+            return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            
+
+    @action(methods=["GET"], detail=False, url_path="get-assignments", url_name="get-assignments")
+    def get_assignments(self, request):
+        authenticated_user = request.user
+        try:
+            assignments = models.Assignment.objects.filter(created_by=authenticated_user, status=True).order_by('-date_created')
+     
+            assignments = serializers.AssignmentSerializer(assignments, many=True).data
+            
+            return Response(assignments, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            return Response({'details':'Error Fetching assignments'},status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["POST"], detail=False, url_path="delete-assignment", url_name="delete-assignment")
+    def delete_assignment(self, request):
+        authenticated_user = request.user
+        payload = request.data
+
+        serializer = serializers.DeleteAssignmentSerializer(data=payload, many=False)
+        if serializer.is_valid():
+            with transaction.atomic():     
+                try:
+                    assignment_id = payload['assignment_id']
+                    assignmentInstance = models.Assignment.objects.get(id=assignment_id)
+                    assignmentInstance.status = False
+                    assignmentInstance.save()
+                except Exception as e:
+                    print(e)
+                    return Response({"details": "Error Deleting Assignment"}, status=status.HTTP_400_BAD_REQUEST)
+               
+                user_util.log_account_activity(
+                    authenticated_user, authenticated_user, f"Note Deleted. Id: " + str(assignment_id) , f"Note For {assignmentInstance.innovation.id} ")
                 return Response("success", status=status.HTTP_200_OK)
         else:
             return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
