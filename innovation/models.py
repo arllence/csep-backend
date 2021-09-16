@@ -270,7 +270,7 @@ class Assignment(models.Model):
     title = models.CharField(max_length=255)
     deadline = models.DateField()
     file = models.FileField(upload_to='documents', blank=True, null=True)
-    assignment_status = models.CharField(max_length=100, default="SUBMITTED")
+    assignment_status = models.CharField(max_length=100, default="PENDING")
     description = models.TextField()
     status = models.BooleanField(default=True)
     date_created = models.DateTimeField(auto_now_add=True)

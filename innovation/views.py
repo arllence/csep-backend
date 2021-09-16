@@ -653,15 +653,14 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     print(e)
                     return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)
 
+                file_available = False
                 try:
                     for f in request.FILES.getlist('document'):
                         if f:
                             print("FIle name", f.name)
                             payload['file'] = f
-                        else:
-                            payload['file'] = None
+                            file_available = True
                 except Exception as e:
-                    payload['file'] = None
                     print(e)
                         
                 
@@ -671,7 +670,8 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     assignmentInstance.title = payload['title']
                     assignmentInstance.description = payload['description']
                     assignmentInstance.deadline = payload['deadline']
-                    assignmentInstance.file = payload['file']
+                    if file_available:
+                        assignmentInstance.file = payload['file']
                     assignmentInstance.save()
                     action = 'Edited'
                     instance_id = assignment_id
@@ -697,7 +697,27 @@ class EvaluationViewSet(viewsets.ModelViewSet):
             return Response(assignments, status=status.HTTP_200_OK)
         except Exception as e:
             print(e)
-            return Response({'details':'Error Fetching assignments'},status=status.HTTP_400_BAD_REQUEST)
+            return Response({'details':'Error Fetching Assignments'},status=status.HTTP_400_BAD_REQUEST)
+
+    
+    @action(methods=["GET"], detail=False, url_path="get-innovator-assignments", url_name="get-innovator-assignments")
+    def get_innovator_assignments(self, request):
+        authenticated_user = request.user
+        my_innovations = models.Innovation.objects.filter(creator=authenticated_user)
+        innovation_ids = []
+        if my_innovations:
+            for innovation in my_innovations:
+                innovation_ids.append(innovation.id)
+        else:
+            return Response({}, status=status.HTTP_200_OK)
+
+        try:
+            assignments = models.Assignment.objects.filter(innovation__in=innovation_ids, status=True).order_by('-date_created')     
+            assignments = serializers.AssignmentSerializer(assignments, many=True).data            
+            return Response(assignments, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            return Response({'details':'Error Fetching Assignments'},status=status.HTTP_400_BAD_REQUEST)
 
 
     @action(methods=["POST"], detail=False, url_path="delete-assignment", url_name="delete-assignment")
