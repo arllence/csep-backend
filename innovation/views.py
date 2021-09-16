@@ -637,12 +637,8 @@ class EvaluationViewSet(viewsets.ModelViewSet):
     def assignment(self, request):
         authenticated_user = request.user
         payload = request.data['payload']
-        print("payload", payload)
         payload = json.loads(payload)
 
-        print(payload)
-        # print("request", request.__dict__)
-        # print(payload)
         serializer = serializers.CreateAssignmentSerializer(data=payload, many=False)
         if serializer.is_valid():
             with transaction.atomic():
@@ -657,9 +653,6 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     print(e)
                     return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)
 
-                document = request.FILES
-                print(document)
-
                 try:
                     for f in request.FILES.getlist('document'):
                         if f:
@@ -670,8 +663,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 except Exception as e:
                     payload['file'] = None
                     print(e)
-                    
-                
+                        
                 
                 try:
                     assignment_id = payload['id']
@@ -700,10 +692,8 @@ class EvaluationViewSet(viewsets.ModelViewSet):
     def get_assignments(self, request):
         authenticated_user = request.user
         try:
-            assignments = models.Assignment.objects.filter(created_by=authenticated_user, status=True).order_by('-date_created')
-     
-            assignments = serializers.AssignmentSerializer(assignments, many=True).data
-            
+            assignments = models.Assignment.objects.filter(created_by=authenticated_user, status=True).order_by('-date_created')     
+            assignments = serializers.AssignmentSerializer(assignments, many=True).data            
             return Response(assignments, status=status.HTTP_200_OK)
         except Exception as e:
             print(e)
@@ -728,7 +718,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     return Response({"details": "Error Deleting Assignment"}, status=status.HTTP_400_BAD_REQUEST)
                
                 user_util.log_account_activity(
-                    authenticated_user, authenticated_user, f"Note Deleted. Id: " + str(assignment_id) , f"Note For {assignmentInstance.innovation.id} ")
+                    authenticated_user, authenticated_user, f"Assignment Deleted. Id: " + str(assignment_id) , f"Assignment For {assignmentInstance.innovation.id} ")
                 return Response("success", status=status.HTTP_200_OK)
         else:
             return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)

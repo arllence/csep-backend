@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     'user_manager',
     'app_manager',
     'innovation',
+    'analytics',
     'django_countries'
 ]
 
