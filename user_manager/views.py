@@ -113,8 +113,6 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                 email = payload['email']
                 first_name = payload['first_name']
                 last_name = payload['last_name']
-                # phone_number = payload['phone_number']
-                # gender = payload['gender']
                 register_as = payload['register_as']
                 hear_about_us = payload['hear_about_us']
                 hear_about_us_other = payload['hear_about_us_other']
@@ -175,10 +173,8 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                 hashed_pwd = make_password(password)
                 newuser = {
                     "email": email,
-                    # "phone_number": phone_number,
                     "first_name": first_name,
                     "last_name": last_name,
-                    # "gender": gender,
                     "hear_about_us": hear_about_us,
                     "hear_about_us_other": hear_about_us_other,
                     "newsletter": newsletter,
@@ -407,6 +403,17 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                     "grade" : grade,
                     "study_summary" : study_summary,
                 }
+                is_underage = False
+                if age_group == "14-17":
+                    is_underage = True
+                    guardian_details = {
+                        "name" : payload['guardian_name'],
+                        "id_number" : payload['guardian_id_number'],
+                        "contact" : payload['guardian_contact']
+                    }
+                    for key in guardian_details:
+                        if not guardian_details[key]:
+                            return Response({'details':"Guardian Details Required"}, status=status.HTTP_400_BAD_REQUEST)
 
                 user_exists = models.CompletedProfile.objects.filter(user=authenticated_user).exists()
                 if user_exists:
@@ -425,6 +432,9 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                     user_profile.employment = employment
 
                     user_profile.save()
+
+                    if is_underage:
+                        models.Guardian.objects.filter(user=authenticated_user).update(**guardian_details)
 
                     current_skills = models.Skills.objects.filter(user=authenticated_user)
                     all_skills = []
@@ -470,6 +480,9 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                         "employment_status": employment
                     }
                     models.UserInfo.objects.create(**profile)
+                    if is_underage:
+                        guardian_details.update({"user": authenticated_user})
+                        models.Guardian.objects.create(**guardian_details)
 
                     for skill in skills:
                         to_create = {

@@ -49,14 +49,31 @@ class User(AbstractBaseUser, PermissionsMixin):
         db_table = "systemusers"
 
 
+class Guardian(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="guardian_details"
+    )
+    name = models.CharField(max_length=255)
+    id_number = models.CharField(max_length=255)
+    contact = models.CharField(max_length=255)
+    date_created = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        app_label = "user_manager"
+        db_table = "guardian"
+
+    def __str__(self):
+        return str(self.name)
+
 class UserInfo(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="user_profile_info"
     )
     profile_picture = models.ImageField(upload_to='profile_images', blank=True)
-    phone = models.CharField(max_length=50)
-    id_number = models.CharField(max_length=50)
+    phone = models.CharField(max_length=50, null=True, blank=True)
+    id_number = models.CharField(max_length=50, null=True, blank=True)
     gender = models.CharField(max_length=50)
     bio = models.TextField()
     age_group = models.CharField(max_length=100)

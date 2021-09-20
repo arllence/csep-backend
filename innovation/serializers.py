@@ -30,13 +30,17 @@ class SupportServicesSerializer(serializers.ModelSerializer):
         model = app_manager_models.SupportServices
         fields = '__all__'
 
-
+class GenericNameSerializer(serializers.Serializer):
+    name = serializers.CharField()
 
 class InnovationDetailsSerializer(serializers.ModelSerializer):
     # innovation = InnovationSerializer()
     industry = serializers.SerializerMethodField('get_industry')
     development_stage = serializers.SerializerMethodField('get_development_stage')
     # intellectual_property = app_manager_serializers.IntellectualPropertySerializer()
+    accreditation_bodies = serializers.SerializerMethodField('get_accreditation_bodies')
+    recognitions = serializers.SerializerMethodField('get_recognitions')
+    awards = serializers.SerializerMethodField('get_awards')
     class Meta:
         model = models.InnovationDetails
         fields = '__all__'
@@ -54,6 +58,34 @@ class InnovationDetailsSerializer(serializers.ModelSerializer):
         try:
             development_stage = app_manager_models.DevelopmentStage.objects.get(id=obj.development_stage_id)
             serializer = app_manager_serializers.DevelopmentStageSerializer(development_stage, many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+
+    def get_accreditation_bodies(self, obj):
+        try:
+            accreditation_bodies = models.AccreditationBody.objects.filter(innovation=obj.innovation_id)
+            serializer = GenericNameSerializer(accreditation_bodies, many=True)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+
+    def get_recognitions(self, obj):
+        try:
+            recognitions = models.Recognitions.objects.filter(innovation=obj.innovation_id)
+            serializer = GenericNameSerializer(recognitions, many=True)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+
+    def get_awards(self, obj):
+        try:
+            print(obj.innovation_id)
+            awards = models.Awards.objects.filter(innovation=obj.innovation_id)
+            serializer = GenericNameSerializer(awards, many=True)
             return serializer.data
         except Exception as e:
             print(e)

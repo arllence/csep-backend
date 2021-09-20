@@ -152,7 +152,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
                     for award in payload['awards']:
                         data = {
                             "innovation" : innovation,
-                            "name" : award['value']
+                            "name" : award['value'].upper()
                         }
                         models.Awards.objects.create(**data)
                 del payload['awards']
@@ -162,7 +162,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
                     for recognition in payload['recognitions']:
                         data = {
                             "innovation" : innovation,
-                            "name" : recognition['value']
+                            "name" : recognition['value'].upper()
                         }
                         models.Recognitions.objects.create(**data)
                 del payload['recognitions']
@@ -172,7 +172,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
                     for accreditation in payload['accreditation_bodies']:
                         data = {
                             "innovation" : innovation,
-                            "name" : accreditation['value']
+                            "name" : accreditation['value'].upper()
                         }
                         models.AccreditationBody.objects.create(**data)
                 del payload['accreditation_bodies']
@@ -238,36 +238,77 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 # attended = ['intellectual_property', 'development_stage', 'industry','accreditation_bodies','awards','recognitions']
 
                 if payload['awards']:
+                    saved_data = []
+                    current_data = []
+                    saved = models.Awards.objects.filter(innovation=innovation)
+                    for data in saved: saved_data.append(data.name)
                     for award in payload['awards']:
-                        name = award['value']
+                        try:
+                            name = award['value'].upper()
+                        except Exception as e:
+                            print(e)
+                            name = award.upper()
+                        current_data.append(name)
                         if not models.Awards.objects.filter(name=name,innovation=innovation).exists():
                             data = {
                                 "innovation" : innovation,
                                 "name" : name
                             }
                             models.Awards.objects.create(**data)
+                    for sdata in saved_data:
+                        if sdata not in current_data:
+                            models.Awards.objects.filter(name=sdata,innovation=innovation).delete()
+                else:
+                    models.Awards.objects.filter(innovation=innovation).delete()
+                
 
 
                 if payload['recognitions']:
+                    saved_data = []
+                    current_data = []
+                    saved = models.Recognitions.objects.filter(innovation=innovation)
+                    for data in saved: saved_data.append(data.name)
                     for recognition in payload['recognitions']:
-                        name = recognition['value']
+                        try:
+                            name = recognition['value'].upper()
+                        except Exception as e:
+                            name = recognition.upper()
+                        current_data.append(name)
                         if not models.Recognitions.objects.filter(name=name,innovation=innovation).exists():
                             data = {
                                 "innovation" : innovation,
                                 "name" : name
                             }
                             models.Recognitions.objects.create(**data)
-
+                    for sdata in saved_data:
+                        if sdata not in current_data:
+                            models.Recognitions.objects.filter(name=sdata,innovation=innovation).delete()
+                else:
+                    models.Recognitions.objects.filter(innovation=innovation).delete()
 
                 if payload['accreditation_bodies']:
+                    saved_data = []
+                    current_data = []
+                    saved = models.AccreditationBody.objects.filter(innovation=innovation)
+                    for data in saved: saved_data.append(data.name)
                     for accreditation in payload['accreditation_bodies']:
-                        name = accreditation['value']
+                        try:
+                            name = accreditation['value'].upper()
+                        except Exception as e:
+                            name = accreditation.upper()
+                        current_data.append(name)
                         if not models.AccreditationBody.objects.filter(name=name,innovation=innovation).exists():
                             data = {
                                 "innovation" : innovation,
                                 "name" : name
                             }
                             models.AccreditationBody.objects.create(**data)
+                    for sdata in saved_data:
+                        if sdata not in current_data:
+                            models.AccreditationBody.objects.filter(name=sdata,innovation=innovation).delete()
+                else:
+                    models.AccreditationBody.objects.filter(innovation=innovation).delete()
+
 
                 
                 details_instance.innovation_name = payload['innovation_name']
