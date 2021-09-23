@@ -195,6 +195,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                     name = create_user.first_name
                     subject = "Activate Your IEN-AFRICA Account"
                     otp = random.randint(1000,100000)
+                    print("otp: ", otp)
                     message =f'Hi {name}, thanks for joining us, \njust one more step.\n Here is your OTP verification code: {otp}'
                     try:
                         existing_otp = models.OtpCodes.objects.get(recipient=create_user)
@@ -231,21 +232,6 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                     user.verified_email = True
                     user.save()
                     check.delete()
-
-                    # payload = {
-                    # 'id': str(user.id),
-                    # 'email': user.email,
-                    # 'name': user.first_name,
-                    # "verified_email": user.verified_email,
-                    # 'superuser': user.is_superuser,
-                    # 'exp': datetime.utcnow() + timedelta(seconds=settings.TOKEN_EXPIRY),
-                    # 'iat': datetime.utcnow()
-                    # }
-                
-                    # token = jwt.encode(payload, settings.TOKEN_SECRET_CODE)
-                    # info = {
-                    #     "token": token
-                    # }
                     return Response('Success', status=status.HTTP_200_OK)
                 except Exception as e:
                     print(e)
@@ -1034,14 +1020,15 @@ class SuperUserViewSet(viewsets.ModelViewSet):
     @action(methods=["POST"], detail=False, url_path="edit-user",url_name="edit-user")
     def edit_user(self, request):
         payload = request.data
+        # print(payload)
         serializer = serializers.EditUserSerializer(data=payload, many=False)
         if serializer.is_valid():
-            email = payload['email']
+            # email = payload['email']
             first_name = payload['first_name']
             last_name = payload['last_name']
             # phone_number = payload['phone_number']
             # gender = payload['gender']
-            register_as = payload['register_as']
+            # register_as = payload['register_as']
             account_id = payload['account_id']
 
             try:
@@ -1053,10 +1040,10 @@ class SuperUserViewSet(viewsets.ModelViewSet):
 
             record_instance.first_name = first_name
             record_instance.last_name = last_name
-            record_instance.email = email
+            # record_instance.email = email
             # record_instance.phone_number = phone_number
             # record_instance.gender = gender
-            record_instance.register_as = register_as
+            # record_instance.register_as = register_as
             record_instance.save()
 
             return Response("Successfully Updated",

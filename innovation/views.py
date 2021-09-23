@@ -600,7 +600,6 @@ class EvaluationViewSet(viewsets.ModelViewSet):
     def note(self, request):
         authenticated_user = request.user
         payload = request.data
-        print(payload)
         serializer = serializers.CreateNoteSerializer(data=payload, many=False)
         if serializer.is_valid():
             with transaction.atomic():
@@ -780,6 +779,51 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                
                 user_util.log_account_activity(
                     authenticated_user, authenticated_user, f"Assignment Deleted. Id: " + str(assignment_id) , f"Assignment For {assignmentInstance.innovation.id} ")
+                return Response("success", status=status.HTTP_200_OK)
+        else:
+            return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["POST"], detail=False, url_path="create-group",url_name="create-group")
+    def group(self, request):
+        authenticated_user = request.user
+        payload = request.data
+
+        serializer = serializers.CreateGroupSerializer(data=payload, many=False)
+        if serializer.is_valid():
+            with transaction.atomic():
+                try:
+                    innovation_id = payload['innovation']
+                    innovation = models.Innovation.objects.get(id=innovation_id)
+                    payload['innovation'] = innovation
+                    assignees = payload['assignees']
+                    lead = payload['lead']
+                    role = payload['role']
+                    del payload['assignees']
+                    del payload['lead']
+                except Exception as e:
+                    print(e)
+                    return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)       
+
+                groupinstance = models.Group.objects.create(**payload)
+                for assignee in assignees:
+                    member = get_user_model().objects.get(id=assignee)
+                    if assignee == lead:
+                        models.GroupMember.objects.create(group=groupinstance,member=member,is_lead=True)
+                    else:
+                        models.GroupMember.objects.create(group=groupinstance,member=member)
+
+                assign_role = user_util.award_role(role,lead)
+
+                if assign_role:
+                    print("Role Award Successful")
+                else:
+                    print("Role Award UnSuccessful")
+
+                assignees = ", ".join(assignees)
+
+                user_util.log_account_activity(
+                    authenticated_user, authenticated_user, f"Group Created. Id: " + str(groupinstance) , f"Group members : {assignees} ")
                 return Response("success", status=status.HTTP_200_OK)
         else:
             return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)

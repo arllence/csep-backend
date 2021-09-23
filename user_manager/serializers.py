@@ -301,7 +301,7 @@ class AccountActivityDetailSerializer(serializers.ModelSerializer):
 class EditUserSerializer(serializers.Serializer):
     first_name = serializers.CharField()
     last_name = serializers.CharField()
-    id_number = serializers.CharField()
+    # id_number = serializers.CharField()
     account_id = serializers.CharField()
 
 

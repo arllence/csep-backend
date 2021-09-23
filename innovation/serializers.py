@@ -232,3 +232,9 @@ class AssignmentSerializer(serializers.ModelSerializer):
 
 class DeleteAssignmentSerializer(serializers.Serializer):
     assignment_id = serializers.CharField()
+
+class CreateGroupSerializer(serializers.Serializer):
+    innovation = serializers.CharField()
+    lead = serializers.CharField()
+    role = serializers.CharField()
+    assignees = serializers.ListField(min_length=1)

@@ -3,6 +3,7 @@ from user_manager.models import AccountActivity, User
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 from django.conf import settings
+from django.contrib.auth import get_user_model
 
 
 def fetchusergroups(userid):
@@ -53,11 +54,17 @@ def sendmail(recipient,subject,message):
         return False
 
 
-# def log_document_activity(document_instance, user_instance, activity):
-#     # check whether the userid exists,check doc instance too
-#     create_activity = {
-#         "document": document_instance,
-#         "user": user_instance,
-#         "document_status": activity
-#     }
-#     create_log = DocumentActivity.objects.create(**create_activity)
+def award_role(role,account_id):
+    role = "LEAD_" + role
+    print(role)
+
+    try:
+        record_instance = get_user_model().objects.get(id=account_id)
+        group = Group.objects.get(name=role)  
+        record_instance.groups.add(group)
+        return True
+    except Exception as e:
+        print(e)
+        return False
+
+
