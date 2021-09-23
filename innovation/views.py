@@ -71,6 +71,31 @@ class InnovationViewSet(viewsets.ModelViewSet):
             return Response({'details':'Error Fetching Innovations'},status=status.HTTP_400_BAD_REQUEST)
 
     
+    @action(methods=["GET"], detail=False, url_path="assigned-innovations", url_name="assigned-innovations")
+    def assigned_innovations(self, request):
+        user = request.user
+        try:
+            innovation_pks = []
+
+            innovations = models.GroupMember.objects.filter(member=user)
+            print(innovations)
+            # print(innovation[0].group.innovation)
+            for innovation in innovations:
+                innovation_pks.append(innovation.group.innovation.id)
+
+            innovation = models.Innovation.objects.filter(pk__in=innovation_pks).exclude(status__in=('DROPED','ONGOING'))
+            
+            if innovation:
+                innovations = serializers.FullInnovationSerializer(innovation, many=True).data
+
+                return Response(innovations, status=status.HTTP_200_OK)
+            else:
+                return Response({}, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            return Response({'details':'Error Fetching Innovations'},status=status.HTTP_400_BAD_REQUEST)
+
+    
     @action(methods=["GET"], detail=False, url_path="my-innovations", url_name="my-innovations")
     def my_innovations(self, request):
         try:
