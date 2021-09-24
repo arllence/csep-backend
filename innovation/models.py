@@ -282,31 +282,10 @@ class Assignment(models.Model):
     def __str__(self):
         return str(self.id)
 
-
-# class InnovationReview(models.Model):
-#     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-#     innovation = models.ForeignKey(
-#        Innovation, on_delete=models.CASCADE, related_name="reviews"
-#     )
-#     reviewer =models.ForeignKey(
-#         User, on_delete=models.CASCADE, related_name="review_creator"
-#     )
-#     role = models.CharField(max_length=255)
-#     review = models.TextField()
-#     status = models.BooleanField(default=True)
-#     date_created = models.DateTimeField(auto_now_add=True)
-    
-#     class Meta:
-#         db_table = "innovation_reviews"
-
-#     def __str__(self):
-#         return str(self.id)
-
-
 class Group(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     innovation = models.ForeignKey(
-       Innovation, on_delete=models.CASCADE, related_name="reviews"
+       Innovation, on_delete=models.CASCADE, related_name="groups"
     )
     role = models.CharField(max_length=255)
     status = models.BooleanField(default=True)
@@ -332,6 +311,27 @@ class GroupMember(models.Model):
     
     class Meta:
         db_table = "group_members"
+
+    def __str__(self):
+        return str(self.id)
+
+
+
+class InnovationReview(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    innovation = models.ForeignKey(
+       Innovation, on_delete=models.CASCADE, related_name="reviews"
+    )
+    reviewer =models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="review_creator"
+    )
+    review = models.TextField()
+    action = models.CharField(max_length=255)
+    status = models.BooleanField(default=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = "innovation_reviews"
 
     def __str__(self):
         return str(self.id)

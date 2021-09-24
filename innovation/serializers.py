@@ -238,3 +238,14 @@ class CreateGroupSerializer(serializers.Serializer):
     lead = serializers.CharField()
     role = serializers.CharField()
     assignees = serializers.ListField(min_length=1)
+
+class CreateReviewSerializer(serializers.Serializer):
+    innovation = serializers.CharField()
+    action = serializers.CharField()
+    review = serializers.CharField()
+
+class ReviewSerializer(serializers.ModelSerializer):  
+    # innovation = InnovationSerializer()
+    class Meta:
+        model = models.InnovationReview
+        fields = '__all__'
