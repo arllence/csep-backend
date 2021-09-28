@@ -56,8 +56,6 @@ def sendmail(recipient,subject,message):
 
 def award_role(role,account_id):
     role = "LEAD_" + role
-    print(role)
-
     try:
         record_instance = get_user_model().objects.get(id=account_id)
         group = Group.objects.get(name=role)  
@@ -66,5 +64,17 @@ def award_role(role,account_id):
     except Exception as e:
         print(e)
         return False
+
+def revoke_role(role,account_id):
+    role = "LEAD_" + role
+    try:
+        record_instance = get_user_model().objects.get(id=account_id)
+        group = Group.objects.get(name=role)  
+        record_instance.groups.remove(group)
+        return True
+    except Exception as e:
+        print(e)
+        return False
+        
 
 

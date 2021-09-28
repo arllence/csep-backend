@@ -14,6 +14,8 @@ class Innovation(models.Model):
     creator = models.ForeignKey(
        User, on_delete=models.CASCADE, related_name="innovation_creator"
     )
+    stage = models.CharField(max_length=5, blank=True, null=True)
+    edit = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -320,7 +322,7 @@ class GroupMember(models.Model):
 
 
 
-class InnovationReview(models.Model):
+class InnovationReview(models.Model): # TODO: Rename this model to JuniorInnovationReview
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     innovation = models.ForeignKey(
        Innovation, on_delete=models.CASCADE, related_name="reviews"
@@ -331,10 +333,52 @@ class InnovationReview(models.Model):
     review = models.TextField()
     action = models.CharField(max_length=255)
     status = models.BooleanField(default=True)
+    is_seen = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True)
     
     class Meta:
         db_table = "innovation_reviews"
+
+    def __str__(self):
+        return str(self.id)
+
+
+class InnovationManagerReview(models.Model): 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    innovation = models.ForeignKey(
+       Innovation, on_delete=models.CASCADE, related_name="innovation"
+    )
+    reviewer = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="reviewer"
+    )
+    review = models.JSONField()
+    status = models.BooleanField(default=True)
+    is_seen = models.BooleanField(default=False)
+    date_created = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = "innovation_manager_reviews"
+
+    def __str__(self):
+        return str(self.id)
+
+
+class FinalInnovationManagerReview(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    innovation = models.ForeignKey(
+       Innovation, on_delete=models.CASCADE, related_name="fim_reviews"
+    )
+    reviewer =models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="fim_review_creator"
+    )
+    review = models.TextField()
+    action = models.CharField(max_length=255)
+    status = models.BooleanField(default=True)
+    is_seen = models.BooleanField(default=False)
+    date_created = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = "final_innovation_manager_reviews"
 
     def __str__(self):
         return str(self.id)

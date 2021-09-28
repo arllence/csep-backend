@@ -94,6 +94,7 @@ class InnovationDetailsSerializer(serializers.ModelSerializer):
 class InnovationSerializer(serializers.ModelSerializer):
     creator = UsersSerializer()
     details = serializers.SerializerMethodField('get_details')
+    reviews = serializers.SerializerMethodField()
     class Meta:
         model = models.Innovation
         fields = '__all__'
@@ -102,6 +103,14 @@ class InnovationSerializer(serializers.ModelSerializer):
         try:
             details = models.InnovationDetails.objects.get(innovation=obj.id)
             serializer = InnovationDetailsSerializer(details, many=False)
+            return serializer.data
+        except:
+            return []
+
+    def get_reviews(self, obj):
+        try:
+            details = models.InnovationManagerReview.objects.get(innovation=obj.id)
+            serializer = InnovationManagerReviewSerializer(details, many=False)
             return serializer.data
         except:
             return []
@@ -161,6 +170,8 @@ class FullInnovationSerializer(serializers.ModelSerializer):
     social_links = serializers.SerializerMethodField(read_only=True)
     group = serializers.SerializerMethodField(read_only=True)
     review = serializers.SerializerMethodField(read_only=True)
+    im_reviews = serializers.SerializerMethodField()
+    fim_reviews = serializers.SerializerMethodField()
 
     class Meta:
         model = models.Innovation
@@ -215,6 +226,22 @@ class FullInnovationSerializer(serializers.ModelSerializer):
             return serializer.data
         except Exception as e:
             print(e)
+            return []
+    
+    def get_im_reviews(self, obj):
+        try:
+            details = models.InnovationManagerReview.objects.get(innovation=obj.id)
+            serializer = InnovationManagerReviewSerializer(details, many=False)
+            return serializer.data
+        except:
+            return []
+
+    def get_fim_reviews(self, obj):
+        try:
+            details = models.FinalInnovationManagerReview.objects.get(innovation=obj.id)
+            serializer = ReviewSerializer(details, many=False)
+            return serializer.data
+        except:
             return []
 
 class CreateEvaluationSerializer(serializers.ModelSerializer):  
@@ -292,3 +319,15 @@ class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.InnovationReview
         fields = '__all__'
+
+class InnovationManagerReviewSerializer(serializers.ModelSerializer):  
+    # innovation = InnovationSerializer()
+    reviewer = UsersSerializer()
+    class Meta:
+        model = models.InnovationManagerReview
+        fields = '__all__'
+
+
+class CreateInnovationManagerReviewSerializer(serializers.Serializer):
+    innovation = serializers.CharField()
+    review = serializers.JSONField()

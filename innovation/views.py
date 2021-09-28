@@ -98,7 +98,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
     def my_innovations(self, request):
         try:
             innovation = models.Innovation.objects.filter(creator=request.user)
-            innovation = serializers.InnovationSerializer(innovation, many=True)
+            innovation = serializers.FullInnovationSerializer(innovation, many=True)
             
             return Response(innovation.data, status=status.HTTP_200_OK)
         except Exception as e:
@@ -118,12 +118,12 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 term = payload['submission_terms']
                 payload = {
                     "submission_terms" : term,
-                    "creator" : authenticated_user
+                    "creator" : authenticated_user,
+                    "edit" : True
                 }
                 ongoing = models.Innovation.objects.filter(creator=request.user,status="ONGOING").exists()
                 if ongoing:
                     return Response({"status":"ongoing"}, status=status.HTTP_200_OK)
-                    # return Response({"details": "Kindly Complete The Currently Pending Inovation Before starting  Another "}, status=status.HTTP_400_BAD_REQUEST)
                 newinstance = models.Innovation.objects.create(**payload)
                 response_info = {
                     "innovation_id" : newinstance.id,
@@ -523,11 +523,17 @@ class InnovationViewSet(viewsets.ModelViewSet):
 
             innovation = models.Innovation.objects.get(id=innovation_id)
             
-            innovation.status = "COMPLETED"
+            innovation_status = innovation.status
+            print(innovation_status)
+            if innovation_status == "ONGOING":
+                innovation.status = "COMPLETED"
+            elif innovation_status == "RESUBMIT":
+                innovation.status = "RESUBMITTED"
+            innovation.edit = False
             innovation.save()
             
             user_util.log_account_activity(
-                authenticated_user, authenticated_user, "Innovation Completed", "Id "  + str(innovation_id))
+                authenticated_user, authenticated_user, f"Innovation {innovation_status}", "Id "  + str(innovation_id))
             return Response("success", status=status.HTTP_200_OK)
 
 
@@ -830,6 +836,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
 
                 groupinstance = models.Group.objects.create(**payload)
                 for assignee in assignees:
+                    user_util.revoke_role(role,assignee)
                     member = get_user_model().objects.get(id=assignee)
                     if assignee == lead:
                         models.GroupMember.objects.create(group=groupinstance,member=member,is_lead=True)
@@ -843,7 +850,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 else:
                     print("Role Award UnSuccessful")
 
-                assignees = ", ".join(assignees)
+                assignees = ", ".join(assignees)                
 
                 user_util.log_account_activity(
                     authenticated_user, authenticated_user, f"Group Created. Id: " + str(groupinstance.id) , f"Group members : {assignees} ")
@@ -865,12 +872,16 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     innovation = models.Innovation.objects.get(id=innovation_id)
                     payload['innovation'] = innovation
                     payload['reviewer'] = authenticated_user
+                    action = payload['action']
                 except Exception as e:
                     print(e)
                     return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)  
                 print(payload)
                 check = models.InnovationReview.objects.filter(reviewer=authenticated_user,innovation=innovation)
-                print(check.count())
+                
+                if action == 'PROCEED':
+                    innovation.stage = "II"
+                innovation.save()
 
                 if check.exists():
                     reviewInstance = check.first()
@@ -883,7 +894,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     reviewInstance = models.InnovationReview.objects.create(**payload)          
 
                 user_util.log_account_activity(
-                    authenticated_user, authenticated_user, f"Innovation Review {action}. Id: " + str(reviewInstance.id) , f"Innovation Review")
+                    authenticated_user, authenticated_user, f"Junior Innovation Review {action}. Id: " + str(reviewInstance.id) , f"Junior Innovation Review")
                 return Response("success", status=status.HTTP_200_OK)
         else:
             return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
@@ -903,3 +914,124 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         return Response(reviews, status=status.HTTP_200_OK)
 
 
+    @action(methods=["POST"], detail=False, url_path="create-innovation-manager-review",url_name="create-innovation-manager-review")
+    def innovation_manager_review(self, request):
+        authenticated_user = request.user
+        payload = request.data
+        review = {"review":payload, "innovation":payload['innovation']}
+
+        serializer = serializers.CreateInnovationManagerReviewSerializer(data=review, many=False)
+        if serializer.is_valid():
+            with transaction.atomic():
+                try:
+                    innovation_id = payload['innovation']
+                    innovation = models.Innovation.objects.get(id=innovation_id)
+                    del payload['innovation']
+                    reviewer = authenticated_user
+                    review = payload
+                    payload = {
+                        "innovation" : innovation,
+                        "reviewer" : reviewer,
+                        "review" : review,
+                    }
+                except Exception as e:
+                    print(e)
+                    return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)  
+                    
+                check = models.InnovationManagerReview.objects.filter(reviewer=authenticated_user,innovation=innovation)
+
+                if check.exists():
+                    reviewInstance = check.first()
+                    reviewInstance.review = payload['review']
+                    reviewInstance.save()
+                    action = "Updated"
+                else:
+                    action = "Created"
+                    reviewInstance = models.InnovationManagerReview.objects.create(**payload) 
+
+                innovation.edit = True
+                innovation.status = "RESUBMIT"
+                innovation.save()       
+
+                user_util.log_account_activity(
+                    authenticated_user, authenticated_user, f"Innovation Manager Review {action}. Id: " + str(reviewInstance.id) , f"Innovation Manager Review")
+
+                return Response("success", status=status.HTTP_200_OK)
+        else:
+            return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["GET"], detail=False, url_path="get-innovation-manager-review", url_name="get-innovation-manager-review")
+    def get_innovation_manager_reviews(self, request):
+        innovation_id = request.query_params.get('innovation_id')
+        authenticated_user = request.user
+        try:
+            reviews = models.InnovationManagerReview.objects.get(reviewer=authenticated_user, innovation=innovation_id, status=True)
+            reviews = serializers.InnovationManagerReviewSerializer(reviews, many=False).data  
+        except Exception as e:
+            print(e)
+            reviews = {}
+        return Response(reviews, status=status.HTTP_200_OK)
+
+
+
+    @action(methods=["POST"], detail=False, url_path="create-final-innovation-manager-review",url_name="create-final-innovation-manager-review")
+    def final_innovation_manager_review(self, request):
+        authenticated_user = request.user
+        payload = request.data
+
+        serializer = serializers.CreateReviewSerializer(data=payload, many=False)
+        if serializer.is_valid():
+            with transaction.atomic():
+                try:
+                    innovation_id = payload['innovation']
+                    innovation = models.Innovation.objects.get(id=innovation_id)
+                    payload['innovation'] = innovation
+                    payload['reviewer'] = authenticated_user
+                    action = payload['action']
+                    review = payload['review']
+                except Exception as e:
+                    print(e)
+                    return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST) 
+
+                check = models.FinalInnovationManagerReview.objects.filter(reviewer=authenticated_user,innovation=innovation)
+
+                message = ""
+
+                if action == 'DROP':
+                    innovation.status = 'DROPPED'                    
+                    message = f"Dear Innovator, \n After thorough review, we are sorry to inform you that we shall not be able to proceed with your innovation at this time. \nWe appreciate your effort, trying to make the world a better place. \nBelow is a copy of reviewer final comment: \n\n {review} \n"
+                else:
+                    if action == 'INVITATION_TO_PRESENT':
+                        innovation.status = 'INVITATION_TO_PRESENT'
+                        message = "Dear Innovator, \n After thorough review, we would like to invite you to do a presentation, to enable us understand your innovation further."
+                    else:
+                        innovation.status = 'UNDER_REVIEW'
+                    innovation.stage = "III"
+                innovation.save()
+
+                if check.exists():
+                    reviewInstance = check.first()
+                    reviewInstance.review = payload['review']
+                    reviewInstance.action = payload['action']
+                    reviewInstance.save()
+                    action = "Updated"
+                else:
+                    action = "Created"
+                    reviewInstance = models.FinalInnovationManagerReview.objects.create(**payload)    
+
+                    recipient = innovation.creator.email
+                    subject = "Your Innovation Status"
+
+                    if action != 'PROCEED':
+                        notify = user_util.sendmail(recipient,subject,message)     
+                        if notify:
+                            print("Email sent ...") 
+                        else:
+                            print("Email sending failed ...")
+
+                user_util.log_account_activity(
+                    authenticated_user, authenticated_user, f"Final Innovation Manager Review {action}. Id: " + str(reviewInstance.id) , f"Innovation Manager Final Review")
+                return Response("success", status=status.HTTP_200_OK)
+        else:
+            return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
