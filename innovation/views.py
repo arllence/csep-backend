@@ -457,7 +457,11 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 instance.save()
 
                 for service in support_services:
-                    service = app_manager_models.SupportServices.objects.get(id=int(service))
+                    try:
+                        service = app_manager_models.SupportServices.objects.get(id=int(service))
+                    except ValueError as e:
+                        print(e)
+                        service = app_manager_models.SupportServices.objects.get(service=service)
                     if models.InnovationSupportService.objects.filter(service=service).exists():
                         pass
                     else:
@@ -524,11 +528,15 @@ class InnovationViewSet(viewsets.ModelViewSet):
             innovation = models.Innovation.objects.get(id=innovation_id)
             
             innovation_status = innovation.status
-            print(innovation_status)
+
             if innovation_status == "ONGOING":
                 innovation.status = "COMPLETED"
             elif innovation_status == "RESUBMIT":
                 innovation.status = "RESUBMITTED"
+                im_review = models.InnovationManagerReview.objects.get(innovation=innovation,status=True)
+                im_review.status = False
+                im_review.save()
+
             innovation.edit = False
             innovation.save()
             
@@ -570,8 +578,19 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 try:
                     innovation_id = payload['innovation']
                     innovation = models.Innovation.objects.get(id=innovation_id)
-                    payload['innovation'] = innovation
-                    update = models.Evaluation.objects.filter(innovation=innovation_id).exists()
+                    payload['innovation'] = innovation                   
+
+                    role = None
+                    if innovation.stage == 'IV':
+                        role = 'INTERNAL_EVALUATOR'
+                    elif innovation.stage == 'V':
+                        role = 'SUBJECT_MATTER_EVALUATOR'
+                    elif innovation.stage == 'VI':
+                        role = 'EXTERNAL_EVALUATOR'
+
+                    payload.update({"evaluator": authenticated_user, "role": role})
+
+                    update = models.Evaluation.objects.filter(innovation=innovation_id,evaluator=authenticated_user).exists()
                 except Exception as e:
                     print(e)
                     return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)
@@ -583,15 +602,13 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 except Exception as e:
                     print(e)
                 
-                print(payload)
-
                 if update:
                     del payload['innovation']
                     models.Evaluation.objects.filter(innovation=innovation_id).update(**payload)
                     action = "Updated"
                 else:
                     newinstance = models.Evaluation.objects.create(**payload)
-                    innovation.status = "EVALUATED"
+                    innovation.status = "UNDER_REVIEW"
                     innovation.save()
                     action = "Created"
                
@@ -605,9 +622,33 @@ class EvaluationViewSet(viewsets.ModelViewSet):
     @action(methods=["GET"], detail=False, url_path="is-evaluated", url_name="is-evaluated")
     def is_evaluated(self, request):
         innovation_id = request.query_params.get('innovation_id')
+        authenticated_user = request.user
         try:
             try:
-                innovation = models.Evaluation.objects.get(innovation=innovation_id)
+                innovation = models.Evaluation.objects.get(innovation=innovation_id,evaluator=authenticated_user)
+            except Exception as e:
+                print(e)
+                return Response({"status":False}, status=status.HTTP_200_OK)
+            innovation = serializers.CreateEvaluationSerializer(innovation, many=False).data
+            if innovation:
+                innovation.update({"status":True})
+            else:
+                innovation = {
+                    "status":False
+                }            
+            return Response(innovation, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            return Response({'details':'Error Fetching Evaluated'},status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["GET"], detail=False, url_path="evaluated-innovation", url_name="evaluated-innovation")
+    def evaluated_innovation(self, request):
+        innovation_id = request.query_params.get('innovation_id')
+        evaluator_id = request.query_params.get('evaluator_id')
+        try:
+            try:
+                innovation = models.Evaluation.objects.get(innovation=innovation_id,evaluator_id=evaluator_id)
             except Exception as e:
                 print(e)
                 return Response({"status":False}, status=status.HTTP_200_OK)
@@ -850,7 +891,11 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 else:
                     print("Role Award UnSuccessful")
 
-                assignees = ", ".join(assignees)                
+                assignees = ", ".join(assignees)   
+
+                if role == 'INTERNAL_EVALUATOR':    
+                    innovation.stage = 'IV'
+                    innovation.save()  
 
                 user_util.log_account_activity(
                     authenticated_user, authenticated_user, f"Group Created. Id: " + str(groupinstance.id) , f"Group members : {assignees} ")
@@ -876,7 +921,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 except Exception as e:
                     print(e)
                     return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)  
-                print(payload)
+
                 check = models.InnovationReview.objects.filter(reviewer=authenticated_user,innovation=innovation)
                 
                 if action == 'PROCEED':
@@ -951,7 +996,15 @@ class EvaluationViewSet(viewsets.ModelViewSet):
 
                 innovation.edit = True
                 innovation.status = "RESUBMIT"
-                innovation.save()       
+                innovation.save()   
+
+                junior_review = models.InnovationReview.objects.get(innovation=innovation, status=True)   
+                junior_review.status = False
+                junior_review.save() 
+
+                group = models.Group.objects.get(innovation=innovation, role='JUNIOR_OFFICER', status=True)
+                group.status = False
+                group.save()
 
                 user_util.log_account_activity(
                     authenticated_user, authenticated_user, f"Innovation Manager Review {action}. Id: " + str(reviewInstance.id) , f"Innovation Manager Review")

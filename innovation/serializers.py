@@ -172,6 +172,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
     review = serializers.SerializerMethodField(read_only=True)
     im_reviews = serializers.SerializerMethodField()
     fim_reviews = serializers.SerializerMethodField()
+    ie_reviews = serializers.SerializerMethodField()
 
     class Meta:
         model = models.Innovation
@@ -212,7 +213,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
     
     def get_group(self, obj):
         try:
-            group = models.Group.objects.get(innovation=obj)
+            group = models.Group.objects.get(innovation=obj, status=True)
             serializer = GroupSerializer(group, many=False)
             return serializer.data
         except Exception as e:
@@ -221,7 +222,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
 
     def get_review(self, obj):
         try:
-            group = models.InnovationReview.objects.get(innovation=obj)
+            group = models.InnovationReview.objects.get(innovation=obj, status=True)
             serializer = ReviewSerializer(group, many=False)
             return serializer.data
         except Exception as e:
@@ -230,7 +231,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
     
     def get_im_reviews(self, obj):
         try:
-            details = models.InnovationManagerReview.objects.get(innovation=obj.id)
+            details = models.InnovationManagerReview.objects.get(innovation=obj.id,status=True)
             serializer = InnovationManagerReviewSerializer(details, many=False)
             return serializer.data
         except:
@@ -241,10 +242,21 @@ class FullInnovationSerializer(serializers.ModelSerializer):
             details = models.FinalInnovationManagerReview.objects.get(innovation=obj.id)
             serializer = ReviewSerializer(details, many=False)
             return serializer.data
-        except:
+        except Exception as e:
+            print(e)
+            return []
+    
+    def get_ie_reviews(self, obj):
+        try:
+            details = models.Evaluation.objects.filter(innovation=obj.id)
+            serializer = CreateEvaluationSerializer(details, many=True)
+            return serializer.data
+        except Exception as e:
+            print(e)
             return []
 
 class CreateEvaluationSerializer(serializers.ModelSerializer):  
+    evaluator = UsersSerializer()
     class Meta:
         model = models.Evaluation
         fields = '__all__'

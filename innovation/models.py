@@ -191,6 +191,10 @@ class Evaluation(models.Model):
     innovation = models.ForeignKey(
        Innovation, on_delete=models.CASCADE, related_name="evaluation"
     )
+    evaluator =models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="evaluation_creator", blank=True, null=True # TODO: remove is nullable
+    )
+    role = models.CharField(max_length=100, blank=True, null=True)
     innovation_brief_score = models.IntegerField()
     innovation_brief_observation = models.TextField()
     innovation_brief_comment = models.TextField()
