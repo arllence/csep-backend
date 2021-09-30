@@ -14,7 +14,7 @@ class Innovation(models.Model):
     creator = models.ForeignKey(
        User, on_delete=models.CASCADE, related_name="innovation_creator"
     )
-    stage = models.CharField(max_length=5, blank=True, null=True)
+    stage = models.CharField(max_length=5, default="I")
     edit = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True)
 
@@ -191,7 +191,7 @@ class Evaluation(models.Model):
     innovation = models.ForeignKey(
        Innovation, on_delete=models.CASCADE, related_name="evaluation"
     )
-    evaluator =models.ForeignKey(
+    evaluator = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="evaluation_creator", blank=True, null=True # TODO: remove is nullable
     )
     role = models.CharField(max_length=100, blank=True, null=True)

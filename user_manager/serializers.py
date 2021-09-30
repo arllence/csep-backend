@@ -149,6 +149,11 @@ class CreateUserSerializer(serializers.Serializer):
     newsletter = serializers.BooleanField()
     accepted_terms = serializers.BooleanField()
 
+class AddUserSerializer(serializers.Serializer):
+    email = serializers.CharField()
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+    role_name = serializers.CharField()
 class CreateProfileSerializer(serializers.Serializer):
     email = serializers.CharField()
     first_name = serializers.CharField()

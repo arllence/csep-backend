@@ -169,10 +169,15 @@ class FullInnovationSerializer(serializers.ModelSerializer):
     support_services = serializers.SerializerMethodField(read_only=True)
     social_links = serializers.SerializerMethodField(read_only=True)
     group = serializers.SerializerMethodField(read_only=True)
+    jo_group = serializers.SerializerMethodField(read_only=True)
+    ie_group = serializers.SerializerMethodField(read_only=True)
+    sme_group = serializers.SerializerMethodField(read_only=True)
+    ee_group = serializers.SerializerMethodField(read_only=True)
     review = serializers.SerializerMethodField(read_only=True)
     im_reviews = serializers.SerializerMethodField()
     fim_reviews = serializers.SerializerMethodField()
     ie_reviews = serializers.SerializerMethodField()
+    sme_reviews = serializers.SerializerMethodField()
 
     class Meta:
         model = models.Innovation
@@ -220,6 +225,42 @@ class FullInnovationSerializer(serializers.ModelSerializer):
             print(e)
             return []
 
+    def get_jo_group(self, obj):
+        try:
+            group = models.Group.objects.get(innovation=obj, status=True, role='JUNIOR_OFFICER')
+            serializer = GroupSerializer(group, many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+
+    def get_ie_group(self, obj):
+        try:
+            group = models.Group.objects.get(innovation=obj, status=True, role='INTERNAL_EVALUATOR')
+            serializer = GroupSerializer(group, many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+
+    def get_sme_group(self, obj):
+        try:
+            group = models.Group.objects.get(innovation=obj, status=True, role='SUBJECT_MATTER_EVALUATOR')
+            serializer = GroupSerializer(group, many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+
+    def get_ee_group(self, obj):
+        try:
+            group = models.Group.objects.get(innovation=obj, status=True, role='EXTERNAL_EVALUATOR')
+            serializer = GroupSerializer(group, many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+
     def get_review(self, obj):
         try:
             group = models.InnovationReview.objects.get(innovation=obj, status=True)
@@ -239,7 +280,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
 
     def get_fim_reviews(self, obj):
         try:
-            details = models.FinalInnovationManagerReview.objects.get(innovation=obj.id)
+            details = models.FinalInnovationManagerReview.objects.get(innovation=obj.id, status=True)
             serializer = ReviewSerializer(details, many=False)
             return serializer.data
         except Exception as e:
@@ -248,7 +289,16 @@ class FullInnovationSerializer(serializers.ModelSerializer):
     
     def get_ie_reviews(self, obj):
         try:
-            details = models.Evaluation.objects.filter(innovation=obj.id)
+            details = models.Evaluation.objects.filter(innovation=obj.id,role='INTERNAL_EVALUATOR')
+            serializer = CreateEvaluationSerializer(details, many=True)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+    
+    def get_sme_reviews(self, obj):
+        try:
+            details = models.Evaluation.objects.filter(innovation=obj.id,role='SUBJECT_MATTER_EVALUATOR')
             serializer = CreateEvaluationSerializer(details, many=True)
             return serializer.data
         except Exception as e:
@@ -262,6 +312,8 @@ class CreateEvaluationSerializer(serializers.ModelSerializer):
         fields = '__all__'
         # exclude = ('status', 'date_created')
 
+class CustomCreateEvaluationSerializer(serializers.Serializer):
+    innovation = serializers.CharField()
 class CreateNoteSerializer(serializers.Serializer):
     innovation = serializers.CharField()
     title = serializers.CharField()

@@ -1152,17 +1152,14 @@ class SuperUserViewSet(viewsets.ModelViewSet):
         payload = request.data
         authenticated_user = request.user
 
-        serializer = serializers.CreateUserSerializer(data=payload, many=False)
+        serializer = serializers.AddUserSerializer(data=payload, many=False)
         if serializer.is_valid():
             with transaction.atomic():
                 email = payload['email']
                 first_name = payload['first_name']
                 last_name = payload['last_name']
-                phone_number = payload['phone_number']
-                gender = payload['gender']
-                register_as = payload['register_as']
-                userexists = get_user_model().objects.filter(email=email).exists()
-                
+                register_as = payload['role_name']
+                userexists = get_user_model().objects.filter(email=email).exists()                
 
                 if userexists:
                     return Response({'details': 'User With Credentials Already Exist'}, status=status.HTTP_400_BAD_REQUEST)
@@ -1171,19 +1168,19 @@ class SuperUserViewSet(viewsets.ModelViewSet):
                     group_details = Group.objects.get(id=register_as)
                 except (ValidationError, ObjectDoesNotExist):
                     return Response({'details': 'Role does not exist'}, status=status.HTTP_400_BAD_REQUEST)
-
-                if group_details.name == "SUPERUSER":
+                
+                is_superuser = False
+                if group_details.name == "USER_MANAGER":
                     is_superuser = True
                 
                 password = self.password_generator()
+                print(password)
 
                 hashed_pwd = make_password(password)
                 newuser = {
                     "email": email,
-                    "phone_number": phone_number,
                     "first_name": first_name,
                     "last_name": last_name,
-                    "gender": gender,
                     "register_as": register_as,
                     "is_active": True,
                     "is_superuser": is_superuser,

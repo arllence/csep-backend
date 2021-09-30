@@ -572,7 +572,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         authenticated_user = request.user
         payload = request.data
 
-        serializer = serializers.CreateEvaluationSerializer(data=payload, many=False)
+        serializer = serializers.CustomCreateEvaluationSerializer(data=payload, many=False)
         if serializer.is_valid():
             with transaction.atomic():
                 try:
@@ -895,7 +895,17 @@ class EvaluationViewSet(viewsets.ModelViewSet):
 
                 if role == 'INTERNAL_EVALUATOR':    
                     innovation.stage = 'IV'
-                    innovation.save()  
+                    fim = models.FinalInnovationManagerReview.objects.filter(innovation=innovation, status=True)
+                    if fim:
+                        for review in fim:
+                            review.status = False
+                            review.save()
+                elif role == 'SUBJECT_MATTER_EVALUATOR':
+                    innovation.stage = 'V'
+                elif role == 'EXTERNAL_EVALUATOR':
+                    innovation.stage = 'VI'
+                innovation.save() 
+
 
                 user_util.log_account_activity(
                     authenticated_user, authenticated_user, f"Group Created. Id: " + str(groupinstance.id) , f"Group members : {assignees} ")
@@ -1047,7 +1057,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     print(e)
                     return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST) 
 
-                check = models.FinalInnovationManagerReview.objects.filter(reviewer=authenticated_user,innovation=innovation)
+                check = models.FinalInnovationManagerReview.objects.filter(reviewer=authenticated_user,innovation=innovation, status=True)
 
                 message = ""
 
@@ -1060,7 +1070,12 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                         message = "Dear Innovator, \n After thorough review, we would like to invite you to do a presentation, to enable us understand your innovation further."
                     else:
                         innovation.status = 'UNDER_REVIEW'
-                    innovation.stage = "III"
+                    if innovation.stage == "II":
+                        innovation.stage = "III"
+                    elif innovation.stage =="III":
+                        innovation.stage = "IV"
+                    elif innovation.stage == "IV":
+                        innovation.stage = "V"
                 innovation.save()
 
                 if check.exists():
