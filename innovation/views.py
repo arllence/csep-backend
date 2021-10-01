@@ -61,7 +61,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
             innovation = models.Innovation.objects.exclude(status__in=('DROPED','ONGOING'))
             # print(innovation)
             if innovation:
-                innovations = serializers.FullInnovationSerializer(innovation, many=True).data
+                innovations = serializers.FullInnovationSerializer(innovation, many=True ,context={"user_id":request.user.id}).data
 
                 return Response(innovations, status=status.HTTP_200_OK)
             else:
@@ -84,7 +84,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
             innovation = models.Innovation.objects.filter(pk__in=innovation_pks).exclude(status__in=('DROPED','ONGOING'))
             
             if innovation:
-                innovations = serializers.FullInnovationSerializer(innovation, many=True).data
+                innovations = serializers.FullInnovationSerializer(innovation, many=True, context={"user_id":request.user.id}).data
 
                 return Response(innovations, status=status.HTTP_200_OK)
             else:
@@ -435,6 +435,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
             innovation_id = payload['innovation']
             innovation = models.Innovation.objects.get(id=innovation_id)
             payload['innovation'] = innovation
+            print("innovation: ",innovation.__dict__)
 
             support_services = []
                 
@@ -447,6 +448,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
 
 
             links_exists =  models.InnovationSocialLinks.objects.filter(innovation=innovation_id).exists()
+            print("links_exists: ", links_exists)
             if links_exists:
                 instance = models.InnovationSocialLinks.objects.get(innovation=innovation_id)
                 instance.facebook = payload['facebook']
@@ -523,7 +525,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
             try:
                 innovation_id = payload['innovation_id']
             except:
-                return Response({'details':'Error, No Innovation Found'},status=status.HTTP_400_BAD_REQUEST)
+                return Response({'details':'Invalid Innovation Id'},status=status.HTTP_400_BAD_REQUEST)
 
             innovation = models.Innovation.objects.get(id=innovation_id)
             
@@ -533,9 +535,12 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 innovation.status = "COMPLETED"
             elif innovation_status == "RESUBMIT":
                 innovation.status = "RESUBMITTED"
-                im_review = models.InnovationManagerReview.objects.get(innovation=innovation,status=True)
-                im_review.status = False
-                im_review.save()
+                try:
+                    im_review = models.InnovationManagerReview.objects.get(innovation=innovation,status=True)
+                    im_review.status = False
+                    im_review.save()
+                except Exception as e:
+                    print(e)
 
             innovation.edit = False
             innovation.save()
@@ -873,9 +878,16 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     del payload['lead']
                 except Exception as e:
                     print(e)
-                    return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)       
+                    return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)   
+
+                group_exists = models.Group.objects.filter(innovation=innovation, status=True)
+                if group_exists:
+                    for group in group_exists:
+                        group.status = False
+                        group.save()    
 
                 groupinstance = models.Group.objects.create(**payload)
+                
                 for assignee in assignees:
                     user_util.revoke_role(role,assignee)
                     member = get_user_model().objects.get(id=assignee)
@@ -1053,6 +1065,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     payload['reviewer'] = authenticated_user
                     action = payload['action']
                     review = payload['review']
+                    innovation_name = models.InnovationDetails.objects.get(innovation=innovation).innovation_name
                 except Exception as e:
                     print(e)
                     return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST) 
@@ -1063,16 +1076,24 @@ class EvaluationViewSet(viewsets.ModelViewSet):
 
                 if action == 'DROP':
                     innovation.status = 'DROPPED'                    
-                    message = f"Dear Innovator, \n After thorough review, we are sorry to inform you that we shall not be able to proceed with your innovation at this time. \nWe appreciate your effort, trying to make the world a better place. \nBelow is a copy of reviewer final comment: \n\n {review} \n"
+                    message = f"Dear Innovator, \n After thorough review of {innovation_name}, we are sorry to inform you that we shall not be able to proceed with your innovation at this time. \nWe appreciate your effort, trying to make the world a better place. \nBelow is a copy of reviewer final comment: \n\n {review} \n\n"
                 else:
                     if action == 'INVITATION_TO_PRESENT':
                         innovation.status = 'INVITATION_TO_PRESENT'
-                        message = "Dear Innovator, \n After thorough review, we would like to invite you to do a presentation, to enable us understand your innovation further."
+                        message = f"Dear Innovator, \n After thorough review of {innovation_name}, we would like to invite you to do a presentation, to enable us understand your innovation further.\n\n"
+                    elif action == 'RESUBMIT':
+                        innovation.status = 'RESUBMIT'
+                        innovation.edit = True
+                        message = f"Dear Innovator, \n After thorough review of your innovation {innovation_name}, we have recommended appropriate changes.\nPlease effect them and Resubmit.\n\n"
+                    elif action == 'APPROVE':
+                        innovation.status = 'APPROVED'
+                        innovation.edit = True
+                        message = f"Dear Innovator, \n Congratulations, ypur innovation {innovation_name} has been approved!\n\n"
                     else:
                         innovation.status = 'UNDER_REVIEW'
                     if innovation.stage == "II":
                         innovation.stage = "III"
-                    elif innovation.stage =="III":
+                    elif innovation.stage == "III":
                         innovation.stage = "IV"
                     elif innovation.stage == "IV":
                         innovation.stage = "V"

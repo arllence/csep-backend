@@ -178,6 +178,8 @@ class FullInnovationSerializer(serializers.ModelSerializer):
     fim_reviews = serializers.SerializerMethodField()
     ie_reviews = serializers.SerializerMethodField()
     sme_reviews = serializers.SerializerMethodField()
+    ee_reviews = serializers.SerializerMethodField()
+    is_evaluated = serializers.SerializerMethodField()
 
     class Meta:
         model = models.Innovation
@@ -304,6 +306,29 @@ class FullInnovationSerializer(serializers.ModelSerializer):
         except Exception as e:
             print(e)
             return []
+    
+    def get_ee_reviews(self, obj):
+        try:
+            details = models.Evaluation.objects.filter(innovation=obj.id,role='EXTERNAL_EVALUATOR')
+            serializer = CreateEvaluationSerializer(details, many=True)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+    
+    def get_is_evaluated(self, obj):
+        try:
+            # print(self.context["user_id"].__dict__)
+            user_id = None
+            try:
+                user_id = str(self.context["user_id"])
+            except Exception as e:
+                print(e)
+            evaluated = models.Evaluation.objects.filter(innovation=obj.id,evaluator=user_id).exists()
+            return evaluated
+        except Exception as e:
+            print(e)
+            return False
 
 class CreateEvaluationSerializer(serializers.ModelSerializer):  
     evaluator = UsersSerializer()
