@@ -66,7 +66,10 @@ def award_role(role,account_id):
         return False
 
 def revoke_role(role,account_id):
-    role = "LEAD_" + role
+    if role == "EXTERNAL_EVALUATOR":
+        role = "CHIEF_EVALUATOR"
+    else:
+        role = "LEAD_" + role
     try:
         record_instance = get_user_model().objects.get(id=account_id)
         group = Group.objects.get(name=role)  

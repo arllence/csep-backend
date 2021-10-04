@@ -1085,7 +1085,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                         innovation.status = 'RESUBMIT'
                         innovation.edit = True
                         message = f"Dear Innovator, \n After thorough review of your innovation {innovation_name}, we have recommended appropriate changes.\nPlease effect them and Resubmit.\n\n"
-                    elif action == 'APPROVE':
+                    elif action == 'APPROVED':
                         innovation.status = 'APPROVED'
                         innovation.edit = True
                         message = f"Dear Innovator, \n Congratulations, ypur innovation {innovation_name} has been approved!\n\n"

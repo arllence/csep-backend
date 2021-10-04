@@ -11,6 +11,7 @@ from analytics.utils import dates
 import json
 from innovation import models as innovation_models
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from datetime import datetime
 date_class = dates.DateClass()
 
 
@@ -127,6 +128,32 @@ class AnalyticsViewSet(viewsets.ViewSet):
             "mentors" : mentors,
             "managers" : managers,
             "partners" : partners,
+        }
+        return Response(info, status=status.HTTP_200_OK)
+
+
+    @action(
+        methods=["GET"],
+        detail=False,
+        url_path="monthly-user-registration",
+        url_name="monthly-user-registration",
+    )
+    def monthly_user_registration(self, request):
+        year = request.query_params.get('year')
+        if year is None:
+            year = int(str(datetime.now().year))
+        
+        data = []
+        
+        for i in range(1,13):
+            count = get_user_model().objects.filter(date_created__year=year,date_created__month=i).count()
+            data.append(count)
+
+        series = [{"name":"Registered Users","data": data}]
+        print(series)
+
+        info = {
+            "series" : series,
         }
         return Response(info, status=status.HTTP_200_OK)
     
