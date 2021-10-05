@@ -10,6 +10,7 @@ from django.db.models import Count, Q
 from analytics.utils import dates
 import json
 from innovation import models as innovation_models
+from user_manager import models as user_manager_models
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from datetime import datetime
 date_class = dates.DateClass()
@@ -120,6 +121,15 @@ class AnalyticsViewSet(viewsets.ViewSet):
         partners = get_user_model().objects.filter(
             groups__name='PARTNER').count()
 
+        series = [
+            {"data": [innovations],"label":"Innovations"},
+            {"data": [innovators],"label":"Innovators"},
+            {"data": [evaluators],"label":"Evaluators"},
+            {"data": [investors],"label":"Investors"},
+            {"data": [mentors],"label":"Mentors"},
+            {"data": [managers],"label":"Managers"},
+            {"data": [partners],"label":"Partners"},
+        ]
         info = {
             "innovations" : innovations,
             "innovators" : innovators,
@@ -128,6 +138,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
             "mentors" : mentors,
             "managers" : managers,
             "partners" : partners,
+            "series" : series
         }
         return Response(info, status=status.HTTP_200_OK)
 
@@ -149,8 +160,28 @@ class AnalyticsViewSet(viewsets.ViewSet):
             count = get_user_model().objects.filter(date_created__year=year,date_created__month=i).count()
             data.append(count)
 
-        series = [{"name":"Registered Users","data": data}]
-        print(series)
+        series = [{"data": data,"label":"Registered Users",}]
+
+        info = {
+            "series" : series,
+        }
+        return Response(info, status=status.HTTP_200_OK)
+
+
+    @action(
+        methods=["GET"],
+        detail=False,
+        url_path="user-by-gender",
+        url_name="user-by-gender",
+    )
+    def user_by_gender(self, request):     
+
+        male_count = user_manager_models.UserInfo.objects.filter(gender='Male').count()
+        female_count = user_manager_models.UserInfo.objects.filter(gender='Female').count()
+
+        series = [
+            male_count,female_count
+        ]
 
         info = {
             "series" : series,
