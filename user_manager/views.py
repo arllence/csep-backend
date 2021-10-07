@@ -242,6 +242,100 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
         else:
             return Response({'details':serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(methods=["POST"], detail=False, url_path="send-password-reset-link",url_name="send-password-reset-link")
+    def send_password_reset_link(self, request):
+        payload = request.data
+        serializer = serializers.UserEmailSerializer(data=payload, many=False)
+        if serializer.is_valid():
+            with transaction.atomic():
+                email = payload['email']
+                serverurl = payload['serverurl']
+                try:
+                    user_details = get_user_model().objects.get(email=email)
+                except (ValidationError, ObjectDoesNotExist):
+                    return Response({'details': 'Email does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+
+                otp = random.randint(1000,100000)                
+                subject = "Password Reset"
+                link = serverurl + "?otp=" + str(otp) + "&email=" + email
+                message = f"Hello {user_details.first_name}, \nClick this link to reset your password: {link}"
+                try:
+                    existing_otp = models.OtpCodes.objects.get(recipient=user_details)
+                    existing_otp.delete()
+                except Exception as e:
+                    print(e)
+                print(message)
+                models.OtpCodes.objects.create(recipient=user_details,otp=otp)
+                mail=user_util.sendmail(email,subject,message)
+
+                user_util.log_account_activity(
+                    user_details, user_details, "Sent Password Reset Link", "Password Reset Link Sent")
+                return Response("Password Reset Successful", status=status.HTTP_200_OK)
+        else:
+            return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+    
+    @action(methods=["POST"], detail=False, url_path="reset-user-password", url_name="reset-user-password")
+    def reset_user_password(self, request):
+        payload = request.data
+        print(payload)
+        serializer = serializers.UserPasswordChangeSerializer(data=payload, many=False)
+        if serializer.is_valid():
+            with transaction.atomic():
+                email = payload['email']
+                otp = payload['otp']
+                password = payload['password']
+                confirm_password = payload['confirm_password']
+
+                try:
+                    userInstance = get_user_model().objects.get(email=email)
+                except Exception as e:
+                    print(e)
+                    return Response({'details': "User Doesn't Exist"}, status=status.HTTP_400_BAD_REQUEST)
+
+                try:
+                    existing_otp = models.OtpCodes.objects.get(recipient=userInstance,otp=otp)
+                    existing_otp.delete()
+                except Exception as e:
+                    print(e)
+                    return Response({'details': "Incorrect Verification Code"}, status=status.HTTP_400_BAD_REQUEST)
+               
+                password_min_length = 8
+
+                string_check= re.compile('[-@_!#$%^&*()<>?/\|}{~:]') 
+
+                if(password != confirm_password): 
+                    return Response({'details':'Passwords Not Matching'},status=status.HTTP_400_BAD_REQUEST)
+
+                if(string_check.search(password) == None): 
+                    return Response({'details':'Password Must contain a special character'},status=status.HTTP_400_BAD_REQUEST)
+
+                if not any(char.isupper() for char in password):
+                    return Response({'details':'Password must contain at least 1 uppercase letter'},status=status.HTTP_400_BAD_REQUEST)
+
+                if len(password) < password_min_length:
+                    return Response({'details':'Password Must be atleast 8 characters'},status=status.HTTP_400_BAD_REQUEST)
+
+                if not any(char.isdigit() for char in password):
+                    return Response({'details':'Password must contain at least 1 digit'},status=status.HTTP_400_BAD_REQUEST)
+                                    
+                if not any(char.isalpha() for char in password):
+                    return Response({'details':'Password must contain at least 1 letter'},status=status.HTTP_400_BAD_REQUEST)
+
+
+                hashed_pwd = make_password(password)
+                userInstance.password = hashed_pwd
+                userInstance.save()
+
+
+                user_util.log_account_activity(
+                    userInstance, userInstance, "Password Reset","Password reset")
+
+                return Response("success", status=status.HTTP_200_OK)
+
+        else:
+            return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
     
     @action(methods=["POST"], detail=False, url_path="resend-otp", url_name="resend-otp")
     def resend_otp(self, request):
@@ -985,7 +1079,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
 
 
 class SuperUserViewSet(viewsets.ModelViewSet):
-    # permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated,)
     queryset = models.User.objects.all().order_by('id')
     serializer_class = serializers.SystemUsersSerializer
     search_fields = ['id', ]

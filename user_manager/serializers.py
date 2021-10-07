@@ -26,14 +26,22 @@ class PasswordChangeSerializer(serializers.Serializer):
     confirm_password = serializers.CharField()
     current_password = serializers.CharField()
 
+class UserPasswordChangeSerializer(serializers.Serializer):
+    otp = serializers.CharField()
+    email = serializers.CharField()
+    password = serializers.CharField()
+    confirm_password = serializers.CharField()
 
 class GroupSerializer(serializers.Serializer):
     id = serializers.CharField()
     name = serializers.CharField()
 
-
 class UserIdSerializer(serializers.Serializer):
     user_id = serializers.CharField()
+
+class UserEmailSerializer(serializers.Serializer):
+    email = serializers.CharField()
+    serverurl = serializers.CharField()
 
 
 class DepartmentSerializer(serializers.Serializer):
