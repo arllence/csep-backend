@@ -1,6 +1,6 @@
 from django.contrib.auth.models import Group
 from django.contrib.auth import get_user_model
-
+# exec(open('user_manager/utils/createusermanager.py').read())
 def award_role():
     try:
         record_instances = get_user_model().objects.filter(is_superuser=True)
@@ -13,3 +13,5 @@ def award_role():
     except Exception as e:
         print(e)
         return False
+        
+award_role()

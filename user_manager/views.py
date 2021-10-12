@@ -1031,7 +1031,6 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
 
     @action(methods=["GET"], detail=False, url_path="list-roles", url_name="list-roles")
     def list_roles(self, request):
-        authenticated_user = request.user
         role = Group.objects.all()
         record_info = serializers.RoleSerializer(role, many=True)
         return Response(record_info.data, status=status.HTTP_200_OK)
