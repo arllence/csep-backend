@@ -26,8 +26,17 @@ from user_manager import models as models
 from app_manager import models as app_manager_models
 from innovation import models as innovation_models
 from user_manager.forms import PictureUploadForm
+from string import Template
+from email_template import *
 
-
+def read_template(filename):
+    """
+    Returns a template object comprising of the contents of the
+    file specified by the filename ie messageto client
+    """
+    with open("email_template/"+filename, 'r', encoding='utf8') as template_file:
+        template_file_content = template_file.read()
+        return Template(template_file_content)
 
 class AuthenticationViewSet(viewsets.ModelViewSet):
     permission_classes = (AllowAny,)
@@ -196,7 +205,10 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                     subject = "Activate Your IEN-AFRICA Account"
                     otp = random.randint(1000,100000)
                     print("otp: ", otp)
-                    message =f'Hi {name}, thanks for joining us, \njust one more step.\n Here is your OTP verification code: {otp}'
+                    message_template = read_template("activation_email.html")
+                    message = message_template.substitute(NAME=name, OTP=otp)
+                    # print(message)
+                    # message =f'Hi {name}, thanks for joining us, \njust one more step.\n Here is your OTP verification code: {otp}'
                     try:
                         existing_otp = models.OtpCodes.objects.get(recipient=create_user)
                         existing_otp.delete()
@@ -225,7 +237,6 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
             with transaction.atomic():
                 otp = payload['otp']
                 email = payload['email']
-                print(otp)
                 try:
                     check = models.OtpCodes.objects.get(otp=otp)
                     user = get_user_model().objects.get(email=email)
@@ -236,9 +247,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                 except Exception as e:
                     print(e)
                     return Response({'details':
-                                     'Incorrect OTP Code'},
-                                  status=status.HTTP_400_BAD_REQUEST)
-
+                                     'Incorrect OTP Code'},status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response({'details':serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -354,13 +363,15 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                     name = user.first_name
                     subject = "Activate Your IEN-AFRICA Account"
                     otp = random.randint(1000,100000)
-                    message =f"Hi {name}, thanks for joining us \nJust one more step...\nHere is your OTP verification code: {otp}"
+                    print(otp)
+                    # message =f"Hi {name}, thanks for joining us \nJust one more step...\nHere is your OTP verification code: {otp}"
+                    message_template = read_template("activation_email.html")
+                    message = message_template.substitute(NAME=name, OTP=otp)
                     try:
                         existing_otp = models.OtpCodes.objects.get(recipient=user)
                         existing_otp.delete()
                     except Exception as e:
                         print(e)
-                    print(message)
                     models.OtpCodes.objects.create(recipient=user,otp=otp)
                     mail=user_util.sendmail(recipient,subject,message)
                 except Exception as e:
