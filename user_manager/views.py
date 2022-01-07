@@ -480,7 +480,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                 skills = payload['skills']
                 institution_name = payload['institution_name']
                 course_name = payload['course_name']
-                grade = payload['grade']
+                # grade = payload['grade']
                 study_summary = payload['study_summary']
 
                 authenticated_user.first_name = first_name
@@ -491,7 +491,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                     "user": authenticated_user,
                     "institution_name" : institution_name,
                     "course_name" : course_name,
-                    "grade" : grade,
+                    # "grade" : grade,
                     "study_summary" : study_summary,
                 }
                 is_underage = False
@@ -545,7 +545,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                         education = models.Education.objects.get(user=authenticated_user)
                         education.institution_name = institution_name 
                         education.course_name = course_name
-                        education.grade = grade
+                        # education.grade = grade
                         education.study_summary = study_summary
                         education.save()
                     except Exception as e:
@@ -850,6 +850,9 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                             newinstance = models.ProfilePicture.objects.create(
                                 profile_picture=f, user=loggedin_user, original_file_name=original_file_name, status=True)
                             url = newinstance.profile_picture.url
+                            info = {
+                                    "url_link" : url
+                                }
                         else:
                             if checker == "INNOVATION":
                                 title_obj = app_manager_models.IntellectualProperty.objects.get(id=document_type)
