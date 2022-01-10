@@ -57,12 +57,13 @@ class UsersSerializer(serializers.ModelSerializer):
     last_name = serializers.CharField()
     is_active = serializers.CharField()
     is_suspended = serializers.CharField()
+    last_login = serializers.DateTimeField()
     user_groups = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = get_user_model()
         fields = [
-            'id', 'email', 'first_name', 'last_name', 'is_active', 'is_suspended','user_groups','date_created'
+            'id', 'email', 'first_name', 'last_name', 'is_active', 'is_suspended','user_groups','date_created','last_login'
         ]
 
     def get_user_groups(self, obj):
@@ -71,6 +72,10 @@ class UsersSerializer(serializers.ModelSerializer):
         serializer = GroupSerializer(allgroups, many=True)
         return serializer.data
 
+class DocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Document
+        fields = '__all__'
 
 class SwapUserDepartmentSerializer(serializers.Serializer):
     user_id = serializers.CharField()
@@ -99,6 +104,16 @@ class CertificationSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class AssociationSerializer(serializers.ModelSerializer):
+    document = serializers.SerializerMethodField('get_document')
+
+    def get_document(self, obj):
+        try:
+            document = models.Document.objects.get(id=obj.document_id)
+            serializer = DocumentSerializer(document, many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
     class Meta:
         model = models.Association
         fields = '__all__'
@@ -106,6 +121,8 @@ class AssociationSerializer(serializers.ModelSerializer):
 class CreateAssociationSerializer(serializers.Serializer):
     name = serializers.CharField()
     role = serializers.CharField()
+    certificate = serializers.CharField()
+    expiration = serializers.DateField()
 
 class DeleteAssociationSerializer(serializers.Serializer):
     association_id = serializers.CharField()

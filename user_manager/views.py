@@ -680,12 +680,27 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
     def create_association(self, request):
         payload = request.data
         authenticated_user = request.user
+        print(payload)
+
+        # try:
+
+        #     payload['expiration'] = datetime.now().strftime('%Y-%m-%d')
+        #     print(payload['expiration'])
+        # except Exception as e:
+        #     print(e)
 
         serializer = serializers.CreateAssociationSerializer(data=payload, many=False)
         if serializer.is_valid():
             with transaction.atomic():
                 name = payload['name']
                 role = payload['role']    
+                expiration = payload['expiration']    
+                certificate_id = payload['certificate']  
+
+                try:
+                    certificate = models.Document.objects.get(id=certificate_id)
+                except Exception as e:
+                    return Response({'details':'No Certificate Uploaded'}, status=status.HTTP_400_BAD_REQUEST)
 
                 association_id = None
                 try:
@@ -697,12 +712,16 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                     association = models.Association.objects.get(id=association_id) 
                     association.name=name 
                     association.role=role
+                    association.expiration=expiration
+                    association.document=certificate
                     association.save()
                 else:        
                     raw = {
                         "user": authenticated_user,
                         "name" : name,
-                        "role" : role
+                        "role" : role,
+                        "expiration": expiration,
+                        "document": certificate
                     }
                     models.Association.objects.create(**raw) 
 
@@ -866,10 +885,12 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                                 }
                             else:
                                 newinstance = models.Document.objects.create(
-                                    document=f, user=loggedin_user, original_file_name=original_file_name)
+                                    document=f, user=loggedin_user, original_file_name=original_file_name, document_type=document_type)
                                 url = newinstance.document.url
+                                doc_id = newinstance.id
                                 info = {
-                                    "url_link" : url
+                                    "url_link" : url,
+                                    "doc_id": doc_id
                                 }
                 if upload_status is True:
                     return Response(info, status=status.HTTP_200_OK)

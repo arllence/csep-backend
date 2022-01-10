@@ -135,22 +135,7 @@ class Certification(models.Model):
         return str(self.name)
 
 
-class Association(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="user_Associations"
-    )
-    name = models.CharField(max_length=255)
-    role = models.CharField(max_length=255)
-    status = models.BooleanField(default=True)
-    date_created = models.DateTimeField(auto_now_add=True)
-    
-    class Meta:
-        app_label = "user_manager"
-        db_table = "associations"
 
-    def __str__(self):
-        return str(self.name)
 
 
 class Hobby(models.Model):
@@ -192,6 +177,7 @@ class Document(models.Model):
         User, on_delete=models.CASCADE, related_name="user_documents"
     )
     document = models.ImageField(upload_to='documents')
+    document_type = models.CharField(max_length=200, blank=True, null=True)
     original_file_name = models.CharField(max_length=100)
     status = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True)
@@ -202,6 +188,29 @@ class Document(models.Model):
 
     def __str__(self):
         return str(self.id)
+
+
+class Association(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="user_Associations"
+    )
+    name = models.CharField(max_length=255)
+    role = models.CharField(max_length=255)
+    status = models.BooleanField(default=True)
+    expiration = models.DateField(null=True, blank=True)
+    document = models.ForeignKey(
+        Document, on_delete=models.CASCADE, related_name="user_Documents", null=True, blank=True
+    )
+
+    date_created = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        app_label = "user_manager"
+        db_table = "associations"
+
+    def __str__(self):
+        return str(self.name)       
 
 class Skills(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
