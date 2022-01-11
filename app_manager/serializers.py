@@ -43,3 +43,9 @@ class EmploymentStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.EmploymentStatus
         fields = '__all__'
+
+
+class IntellectualPropertySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.IntellectualProperty
+        fields = '__all__'

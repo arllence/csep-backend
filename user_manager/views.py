@@ -264,17 +264,23 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                 except (ValidationError, ObjectDoesNotExist):
                     return Response({'details': 'Email does not exist'}, status=status.HTTP_400_BAD_REQUEST)
 
-                otp = random.randint(1000,100000)                
-                subject = "Password Reset"
-                link = serverurl + "?otp=" + str(otp) + "&email=" + email
-                message = f"Hello {user_details.first_name}, \nClick this link to reset your password: {link}"
                 try:
                     existing_otp = models.OtpCodes.objects.get(recipient=user_details)
-                    existing_otp.delete()
+                    otp = existing_otp.otp
                 except Exception as e:
-                    print(e)
-                print(message)
-                models.OtpCodes.objects.create(recipient=user_details,otp=otp)
+                    otp = random.randint(1000,100000) 
+                    models.OtpCodes.objects.create(recipient=user_details,otp=otp)
+
+                               
+                subject = "Password Reset | IEN-AFRICA"
+                link = serverurl + "?otp=" + str(otp) + "&email=" + email
+                # message = f"Hello {user_details.first_name}, \nClick this link to reset your password: {link}"
+
+                message_template = read_template("reset_password.html")
+                message = message_template.substitute(NAME=user_details.first_name, LINK=link)
+                
+                # print(message)
+                # send mail
                 mail=user_util.sendmail(email,subject,message)
 
                 user_util.log_account_activity(
@@ -374,9 +380,11 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                         print(e)
                     models.OtpCodes.objects.create(recipient=user,otp=otp)
                     mail=user_util.sendmail(recipient,subject,message)
+                    return Response('success', status=status.HTTP_200_OK)
                 except Exception as e:
                     print(e)
-                return Response('success', status=status.HTTP_200_OK)
+                    return Response({'details':'Error. Try Again Later'}, status=status.HTTP_400_BAD_REQUEST)
+                
         else:
             return Response({'details':serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -464,8 +472,9 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                 email = payload['email']
                 first_name = payload['first_name'].capitalize()
                 last_name = payload['last_name'].capitalize()
-                phone = payload['phone']
-                id_number = payload['id_number']
+                phone = str(payload['phone'])
+                phonecode = payload['phonecode']
+                # id_number = payload['id_number']
                 gender = payload['gender']
                 age_group = payload['age_group']
                 disability = payload['disability']
@@ -486,6 +495,27 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                 authenticated_user.first_name = first_name
                 authenticated_user.last_name = last_name
                 authenticated_user.save()
+
+                if phonecode:
+                    if phonecode[0] != '+':
+                        phonecode = '+' + phonecode
+
+                    if phone[0] == '0':
+                        phone = phone[1:]
+                    
+                    if phone[0] != '+':
+                        phone = phonecode + '-' + phone
+                    else:
+                        try:
+                            phone = phone.split('-')
+                            code, number = phone
+                            phone = phonecode + '-' + number
+                        except Exception as e:
+                            print(e)
+                            
+
+                
+
 
                 education = {
                     "user": authenticated_user,
@@ -510,7 +540,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                 if user_exists:
                     user_profile = models.UserInfo.objects.get(user=authenticated_user)
                     user_profile.phone = phone
-                    user_profile.id_number = id_number
+                    # user_profile.id_number = id_number
                     user_profile.age_group = age_group
                     user_profile.disability = disability
                     user_profile.country = country
@@ -558,7 +588,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                         "user": authenticated_user,
                         "gender": gender,
                         "phone": phone,
-                        "id_number": id_number,
+                        # "id_number": id_number,
                         "age_group": age_group,
                         "disability": disability,
                         "country": country,
@@ -878,8 +908,17 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                                 title = title_obj.name
                                 innovation = request.data['innovation']
                                 innovation = innovation_models.Innovation.objects.get(id=innovation)
-                                newinstance = innovation_models.InnovationDocument.objects.create(
-                                document=f, innovation=innovation, original_file_name=original_file_name,title=title)
+                                exists = innovation_models.InnovationDocument.objects.filter(innovation=innovation,title=title)
+                                if exists:
+                                    fileInstance = exists.first()
+                                    fileInstance.document=f
+                                    fileInstance.innovation=innovation
+                                    fileInstance.original_file_name=original_file_name
+                                    fileInstance.title=title
+                                    fileInstance.save()
+                                else:
+                                    newinstance = innovation_models.InnovationDocument.objects.create(
+                                        document=f, innovation=innovation, original_file_name=original_file_name,title=title)
                                 info = {
                                     "success" : "success"
                                 }

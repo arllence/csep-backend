@@ -38,11 +38,7 @@ def sendmail(recipient,subject,message):
         from_email = settings.EMAIL_HOST,
         to_emails=recipient,
         subject = subject,
-        html_content= message + 
-        ''
-        '<br />'
-        'Thanks,<br /><br />'
-        'IEN-AFRICA')
+        html_content= message )
         sg = SendGridAPIClient(settings.EMAIL_HOST_PASSWORD)
         response = sg.send(message)
         if response.status_code == 200 or response.status_code == 201 or response.status_code == 202:

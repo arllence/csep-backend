@@ -33,6 +33,11 @@ class SupportServicesSerializer(serializers.ModelSerializer):
 class GenericNameSerializer(serializers.Serializer):
     name = serializers.CharField()
 
+class InnovationDocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.InnovationDocument
+        fields = '__all__'
+
 class InnovationDetailsSerializer(serializers.ModelSerializer):
     # innovation = InnovationSerializer()
     industry = serializers.SerializerMethodField('get_industry')
@@ -41,6 +46,8 @@ class InnovationDetailsSerializer(serializers.ModelSerializer):
     accreditation_bodies = serializers.SerializerMethodField('get_accreditation_bodies')
     recognitions = serializers.SerializerMethodField('get_recognitions')
     awards = serializers.SerializerMethodField('get_awards')
+    intellectual_property = serializers.SerializerMethodField('get_intellectual_property')
+    ip_document = serializers.SerializerMethodField('get_ip_document')
     class Meta:
         model = models.InnovationDetails
         fields = '__all__'
@@ -49,6 +56,24 @@ class InnovationDetailsSerializer(serializers.ModelSerializer):
         try:
             industry = app_manager_models.Industry.objects.get(id=obj.industry_id)
             serializer = app_manager_serializers.IndustrySerializer(industry, many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+
+    def get_intellectual_property(self, obj):
+        try:
+            ip = app_manager_models.IntellectualProperty.objects.get(id=obj.intellectual_property_id)
+            serializer = app_manager_serializers.IntellectualPropertySerializer(ip, many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+
+    def get_ip_document(self, obj):
+        try:
+            ipdoc= models.InnovationDocument.objects.filter(innovation=obj.innovation_id)
+            serializer = InnovationDocumentSerializer(ipdoc, many=True)
             return serializer.data
         except Exception as e:
             print(e)
