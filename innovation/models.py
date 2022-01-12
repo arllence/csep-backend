@@ -288,6 +288,23 @@ class Assignment(models.Model):
     def __str__(self):
         return str(self.id)
 
+class AssignmentResponse(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    assignment = models.ForeignKey(
+       Assignment, on_delete=models.CASCADE, related_name="assignment_response"
+    )
+    file = models.FileField(upload_to='documents', blank=True, null=True)
+    assignment_status = models.CharField(max_length=100, default="SUBMITTED")
+    response = models.TextField()
+    date_created = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        app_label = "innovation"
+        db_table = "assignment_response"
+
+    def __str__(self):
+        return str(self.id)
+
 class Group(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     innovation = models.ForeignKey(

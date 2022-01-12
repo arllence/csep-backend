@@ -290,7 +290,8 @@ class FullInnovationSerializer(serializers.ModelSerializer):
 
     def get_review(self, obj):
         try:
-            group = models.InnovationReview.objects.get(innovation=obj, status=True)
+            print(obj.__dict__)
+            group = models.InnovationReview.objects.get(innovation=obj.id)
             serializer = ReviewSerializer(group, many=False)
             return serializer.data
         except Exception as e:
@@ -384,7 +385,10 @@ class CreateAssignmentSerializer(serializers.Serializer):
     title = serializers.CharField()
     description = serializers.CharField()
     deadline = serializers.DateField()
-    
+
+class CreateAssignmentResponseSerializer(serializers.Serializer):
+    assignment_id = serializers.CharField()
+    response = serializers.CharField()    
 
 class AssignmentSerializer(serializers.ModelSerializer):  
     innovation = InnovationSerializer()

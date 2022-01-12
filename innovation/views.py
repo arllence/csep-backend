@@ -488,7 +488,18 @@ class InnovationViewSet(viewsets.ModelViewSet):
                     authenticated_user, authenticated_user, "Innovation Social Links created", "Id "  + str(socialInstance.id))
                 return Response("success", status=status.HTTP_200_OK)
 
-    
+    @action(methods=["POST"], detail=False, url_path="remove-support-service",url_name="remove-support-service")
+    def remove_support_service(self, request):
+        payload = request.data
+        # print(payload)
+        with transaction.atomic():
+            innovation_id = payload['innovation']
+            service = payload['service']
+            serviceInstance = models.InnovationSupportService.objects.filter(innovation=innovation_id,service__service=service)
+            serviceInstance.delete()
+            return Response("success", status=status.HTTP_200_OK)
+
+
     @action(methods=["GET"], detail=False, url_path="get-innovation-additional-details", url_name="get-innovation-additional-details")
     def get_innovation_additional_details(self, request):
         innovation_id = request.query_params.get('innovation_id')
@@ -801,6 +812,43 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         else:
             return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
             
+    @action(methods=["POST"], detail=False, url_path="create-assignment-response",url_name="create-assignment-response")
+    def assignment_response(self, request):
+        authenticated_user = request.user
+        payload = request.data['payload']
+        payload = json.loads(payload)
+
+        serializer = serializers.CreateAssignmentResponseSerializer(data=payload, many=False)
+        if serializer.is_valid():
+            with transaction.atomic():
+                try:
+                    assignment_id = payload['assignment_id']
+                    assignment = models.Assignment.objects.get(id=assignment_id)
+                    payload['assignment'] = assignment
+                except Exception as e:
+                    print(e)
+                    return Response({"details": "Invalid Assignment"}, status=status.HTTP_400_BAD_REQUEST)
+
+                try:
+                    for f in request.FILES.getlist('document'):
+                        if f:
+                            payload['file'] = f
+                except Exception as e:
+                    print(e)
+                        
+                
+                newinstance = models.AssignmentResponse.objects.create(**payload)
+                instance_id = newinstance.id
+                action = 'Created'
+               
+                user_util.log_account_activity(
+                    authenticated_user, authenticated_user, f"Assignment Response {action}. Id: " + str(instance_id) , f"Assignment For {assignment_id} ")
+                return Response("success", status=status.HTTP_200_OK)
+        else:
+            return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            
+
+
 
     @action(methods=["GET"], detail=False, url_path="get-assignments", url_name="get-assignments")
     def get_assignments(self, request):
@@ -948,6 +996,8 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 
                 if action == 'PROCEED':
                     innovation.stage = "II"
+                elif action == 'DROP':
+                    innovation.status = 'DROPPED'
                 innovation.save()
 
                 if check.exists():
