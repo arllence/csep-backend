@@ -1,0 +1,11 @@
+# Notification emsil sender should be cron
+
+
+                subject = "Password Reset | IEN-AFRICA"
+
+                message_template = read_template("general.html")
+                message = message_template.substitute(NAME=user_details.first_name)
+                
+                # print(message)
+                # send mail
+                mail=user_util.sendmail(email,subject,message)

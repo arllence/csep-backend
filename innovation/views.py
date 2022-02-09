@@ -20,11 +20,19 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission, Group
 from django.db import IntegrityError, transaction
 from app_manager import models as app_manager_models
+from string import Template
 
 import innovation
 
 
-
+def read_template(filename):
+    """
+    Returns a template object comprising of the contents of the
+    file specified by the filename ie messageto client
+    """
+    with open("email_template/"+filename, 'r', encoding='utf8') as template_file:
+        template_file_content = template_file.read()
+        return Template(template_file_content)
 
 
 class InnovationViewSet(viewsets.ModelViewSet):
@@ -553,6 +561,27 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 except Exception as e:
                     print(e)
 
+                try:
+                    # SEND NOTIFICATION
+                    innovation_name = models.InnovationDetails.objects.get(innovation=innovation).innovation_name.upper()
+                    check = models.FinalInnovationManagerReview.objects.filter(innovation=innovation, status=True).order_by('-date_created').first()
+                    message = f"Innovation: {innovation_name} has been Resubmmited for review"
+                    recipient = check.reviewer.first_name
+                    subject = "Innovation Application Resubmission"
+                    email = check.reviewer.email
+
+                    message_template = read_template("general.html")
+                    body = message_template.substitute(NAME=recipient,MESSAGE=message,LINK=settings.FRONTEND)
+
+                    # save notification
+                    models.Notifications.objects.create(innovation=innovation,sender=authenticated_user,receipient=check.reviewer, notification=message)
+
+                    # send email
+                    user_util.sendmail(email,subject,body)
+                except Exception as e:
+                    print(e)
+
+
             innovation.edit = False
             innovation.save()
             
@@ -1000,7 +1029,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     innovation.status = 'DROPPED'
                 innovation.save()
 
-                if check.exists():
+                if check:
                     reviewInstance = check.first()
                     reviewInstance.review = payload['review']
                     reviewInstance.action = payload['action']
@@ -1057,7 +1086,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     
                 check = models.InnovationManagerReview.objects.filter(reviewer=authenticated_user,innovation=innovation)
 
-                if check.exists():
+                if check:
                     reviewInstance = check.first()
                     reviewInstance.review = payload['review']
                     reviewInstance.save()
@@ -1065,6 +1094,9 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 else:
                     action = "Created"
                     reviewInstance = models.InnovationManagerReview.objects.create(**payload) 
+                
+                if innovation.stage == "II":
+                    innovation.stage = "III"
 
                 innovation.edit = True
                 innovation.status = "RESUBMIT"
@@ -1077,6 +1109,23 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 group = models.Group.objects.get(innovation=innovation, role='JUNIOR_OFFICER', status=True)
                 group.status = False
                 group.save()
+
+                # SEND NOTIFICATION
+                innovation_name = models.InnovationDetails.objects.get(innovation=innovation.id).innovation_name
+                notification = f"Following review of your innovation application: {innovation_name}. We request you to Resubmit after making all the necessary changes as advised"
+
+                subject = "Application Resubmission"
+                first_name = innovation.creator.first_name
+                email = innovation.creator.email
+
+                message_template = read_template("general.html")
+                message = message_template.substitute(NAME=first_name,MESSAGE=notification,LINK=settings.FRONTEND)
+
+                # save notification
+                models.Notifications.objects.create(innovation=innovation,sender=authenticated_user, notification=notification)
+
+                # send email
+                user_util.sendmail(email,subject,message)
 
                 user_util.log_account_activity(
                     authenticated_user, authenticated_user, f"Innovation Manager Review {action}. Id: " + str(reviewInstance.id) , f"Innovation Manager Review")
@@ -1126,30 +1175,32 @@ class EvaluationViewSet(viewsets.ModelViewSet):
 
                 if action == 'DROP':
                     innovation.status = 'DROPPED'                    
-                    message = f"Dear Innovator, \n After thorough review of {innovation_name}, we are sorry to inform you that we shall not be able to proceed with your innovation at this time. \nWe appreciate your effort, trying to make the world a better place. \nBelow is a copy of reviewer final comment: \n\n {review} \n\n"
+                    message = f"After thorough review of {innovation_name}, we are sorry to inform you that we shall not be able to proceed with your innovation at this time. \nWe appreciate your effort, trying to make the world a better place. \nBelow is a copy of reviewer final comment: \n\n {review} \n\n"
                 else:
                     if action == 'INVITATION_TO_PRESENT':
                         innovation.status = 'INVITATION_TO_PRESENT'
-                        message = f"Dear Innovator, \n After thorough review of {innovation_name}, we would like to invite you to do a presentation, to enable us understand your innovation further.\n\n"
+                        message = f"After thorough review of {innovation_name}, we would like to invite you to do a presentation, to enable us understand your innovation further.\n\n"
                     elif action == 'RESUBMIT':
                         innovation.status = 'RESUBMIT'
                         innovation.edit = True
-                        message = f"Dear Innovator, \n After thorough review of your innovation {innovation_name}, we have recommended appropriate changes.\nPlease effect them and Resubmit.\n\n"
+                        message = f"After thorough review of your innovation {innovation_name}, we have recommended appropriate changes.\nPlease effect them and Resubmit.\n\n"
                     elif action == 'APPROVED':
                         innovation.status = 'APPROVED'
                         innovation.edit = True
-                        message = f"Dear Innovator, \n Congratulations, ypur innovation {innovation_name} has been approved!\n\n"
+                        message = f"Congratulations, your innovation {innovation_name} has been approved!\n\n"
                     else:
                         innovation.status = 'UNDER_REVIEW'
+
                     if innovation.stage == "II":
                         innovation.stage = "III"
                     elif innovation.stage == "III":
                         innovation.stage = "IV"
                     elif innovation.stage == "IV":
                         innovation.stage = "V"
+                        
                 innovation.save()
 
-                if check.exists():
+                if check:
                     reviewInstance = check.first()
                     reviewInstance.review = payload['review']
                     reviewInstance.action = payload['action']
@@ -1159,15 +1210,20 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     action = "Created"
                     reviewInstance = models.FinalInnovationManagerReview.objects.create(**payload)    
 
-                    recipient = innovation.creator.email
+                if action != 'PROCEED':
+                    # SEND NOTIFICATION
+                    recipient = innovation.creator.first_name
                     subject = "Your Innovation Status"
+                    email = innovation.creator.email
 
-                    if action != 'PROCEED':
-                        notify = user_util.sendmail(recipient,subject,message)     
-                        if notify:
-                            print("Email sent ...") 
-                        else:
-                            print("Email sending failed ...")
+                    message_template = read_template("general.html")
+                    body = message_template.substitute(NAME=recipient,MESSAGE=message,LINK=settings.FRONTEND)
+
+                    # save notification
+                    models.Notifications.objects.create(innovation=innovation,sender=authenticated_user, notification=message)
+
+                    # send email
+                    user_util.sendmail(email,subject,body)
 
                 user_util.log_account_activity(
                     authenticated_user, authenticated_user, f"Final Innovation Manager Review {action}. Id: " + str(reviewInstance.id) , f"Innovation Manager Final Review")
