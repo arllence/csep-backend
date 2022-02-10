@@ -946,6 +946,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 try:
                     innovation_id = payload['innovation']
                     innovation = models.Innovation.objects.get(id=innovation_id)
+                    innovation_name = models.InnovationDetails.objects.get(innovation=innovation).innovation_name.upper()
                     payload['innovation'] = innovation
                     payload['creator'] = authenticated_user
                     assignees = payload['assignees']
@@ -970,8 +971,26 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     member = get_user_model().objects.get(id=assignee)
                     if assignee == lead:
                         models.GroupMember.objects.create(group=groupinstance,member=member,is_lead=True)
+                        message = f"You have been assigned a team of evaluators for innovation: {innovation_name} as {role}"
                     else:
                         models.GroupMember.objects.create(group=groupinstance,member=member)
+                        message = f"You have been assigned an evaluation role for innovation: {innovation_name} as {role}"
+
+                    try:
+                        # SEND NOTIFICATION
+                        subject = "Assigned Evaluation Role"
+                        email = assignee.email
+
+                        message_template = read_template("general.html")
+                        body = message_template.substitute(NAME=assignee.first_name,MESSAGE=message,LINK=settings.FRONTEND)
+
+                        # save notification
+                        models.Notifications.objects.create(innovation=innovation,sender=authenticated_user,receipient=assignee, notification=message)
+
+                        # send email
+                        user_util.sendmail(email,subject,body)
+                    except Exception as e:
+                        print(e)
 
                 assign_role = user_util.award_role(role,lead)
 
@@ -1122,7 +1141,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 message = message_template.substitute(NAME=first_name,MESSAGE=notification,LINK=settings.FRONTEND)
 
                 # save notification
-                models.Notifications.objects.create(innovation=innovation,sender=authenticated_user, notification=notification)
+                models.Notifications.objects.create(innovation=innovation,receipient=innovation.creator, sender=authenticated_user, notification=notification)
 
                 # send email
                 user_util.sendmail(email,subject,message)
@@ -1220,7 +1239,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     body = message_template.substitute(NAME=recipient,MESSAGE=message,LINK=settings.FRONTEND)
 
                     # save notification
-                    models.Notifications.objects.create(innovation=innovation,sender=authenticated_user, notification=message)
+                    models.Notifications.objects.create(innovation=innovation,receipient=innovation.creator,sender=authenticated_user, notification=message)
 
                     # send email
                     user_util.sendmail(email,subject,body)
@@ -1230,3 +1249,36 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 return Response("success", status=status.HTTP_200_OK)
         else:
             return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["GET"], detail=False, url_path="get-notifications", url_name="get-notifications")
+    def get_notifications(self, request):
+        try:
+            authenticated_user = request.user
+               
+            try:
+                notification = models.Notifications.objects.filter(recipient=authenticated_user, is_seen=False).order_by('-date_created')
+                notification = serializers.NotificationsSerializer(notification, many=True).data  
+            except Exception as e:
+                print(e)
+                notification = {}
+            return Response(notification, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+
+
+    @action(methods=["GET"], detail=False, url_path="mark-notifications-as-read", url_name="mark-notifications-as-read")
+    def notifications_as_read(self, request):
+        try:
+            authenticated_user = request.user
+               
+            try:
+                notifications = models.Notifications.objects.filter(recipient=authenticated_user, is_seen=False).order_by('-date_created')
+                for notification in notifications:
+                    notification.is_seen = True
+                    notification.save()
+            except Exception as e:
+                print(e)
+            return Response('success', status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)

@@ -1137,6 +1137,13 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
         return Response(user_info.data, status=status.HTTP_200_OK)
 
 
+    @action(methods=["GET"], detail=False, url_path="fetch-users", url_name="fetch-users")
+    def fetch_users(self, request):
+        users = get_user_model().objects.all()
+        user_info = serializers.UsersSerializer(users, many=True)        
+        return Response(user_info.data, status=status.HTTP_200_OK)
+
+
     @action(methods=["GET"], detail=False, url_path="get-profile-details", url_name="get-profile-details")
     def get_profile_details(self, request):
         authenticated_user = request.user

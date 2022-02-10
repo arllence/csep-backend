@@ -408,12 +408,12 @@ class FinalInnovationManagerReview(models.Model):
 class Notifications(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     innovation = models.ForeignKey(
-       Innovation, on_delete=models.CASCADE, related_name="notification_innovation"
+       Innovation, on_delete=models.CASCADE, related_name="notification_innovation", null=True, blank=True
     )
     sender = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="notification_sender"
     )
-    receipient = models.ForeignKey(
+    recipient = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="notification_receipient", null=True, blank=True
     )
     notification = models.TextField()

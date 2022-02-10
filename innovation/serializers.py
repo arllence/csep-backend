@@ -290,7 +290,6 @@ class FullInnovationSerializer(serializers.ModelSerializer):
 
     def get_review(self, obj):
         try:
-            print(obj.__dict__)
             group = models.InnovationReview.objects.get(innovation=obj.id)
             serializer = ReviewSerializer(group, many=False)
             return serializer.data
@@ -344,7 +343,6 @@ class FullInnovationSerializer(serializers.ModelSerializer):
     
     def get_is_evaluated(self, obj):
         try:
-            # print(self.context["user_id"].__dict__)
             user_id = None
             try:
                 user_id = str(self.context["user_id"])
@@ -449,3 +447,12 @@ class InnovationManagerReviewSerializer(serializers.ModelSerializer):
 class CreateInnovationManagerReviewSerializer(serializers.Serializer):
     innovation = serializers.CharField()
     review = serializers.JSONField()
+
+
+class NotificationsSerializer(serializers.ModelSerializer):  
+    # innovation = InnovationSerializer()
+    recipient = UsersSerializer()
+    sender = UsersSerializer()
+    class Meta:
+        model = models.Notifications
+        fields = '__all__'
