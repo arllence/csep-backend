@@ -574,7 +574,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
                     body = message_template.substitute(NAME=recipient,MESSAGE=message,LINK=settings.FRONTEND)
 
                     # save notification
-                    models.Notifications.objects.create(innovation=innovation,sender=authenticated_user,receipient=check.reviewer, notification=message)
+                    models.Notifications.objects.create(innovation=innovation,sender=authenticated_user,recipient=check.reviewer, notification=message)
 
                     # send email
                     user_util.sendmail(email,subject,body)
@@ -985,7 +985,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                         body = message_template.substitute(NAME=assignee.first_name,MESSAGE=message,LINK=settings.FRONTEND)
 
                         # save notification
-                        models.Notifications.objects.create(innovation=innovation,sender=authenticated_user,receipient=assignee, notification=message)
+                        models.Notifications.objects.create(innovation=innovation,sender=authenticated_user,recipient=assignee, notification=message)
 
                         # send email
                         user_util.sendmail(email,subject,body)
@@ -1141,7 +1141,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 message = message_template.substitute(NAME=first_name,MESSAGE=notification,LINK=settings.FRONTEND)
 
                 # save notification
-                models.Notifications.objects.create(innovation=innovation,receipient=innovation.creator, sender=authenticated_user, notification=notification)
+                models.Notifications.objects.create(innovation=innovation,recipient=innovation.creator, sender=authenticated_user, notification=notification)
 
                 # send email
                 user_util.sendmail(email,subject,message)
@@ -1239,7 +1239,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     body = message_template.substitute(NAME=recipient,MESSAGE=message,LINK=settings.FRONTEND)
 
                     # save notification
-                    models.Notifications.objects.create(innovation=innovation,receipient=innovation.creator,sender=authenticated_user, notification=message)
+                    models.Notifications.objects.create(innovation=innovation,recipient=innovation.creator,sender=authenticated_user, notification=message)
 
                     # send email
                     user_util.sendmail(email,subject,body)
