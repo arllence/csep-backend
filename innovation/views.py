@@ -86,8 +86,8 @@ class InnovationViewSet(viewsets.ModelViewSet):
             innovation_pks = []
 
             role = user_util.fetchusergroups(user.id)[0]
-            # innovations = models.GroupMember.objects.filter(member=user, group__role=role)
-            innovations = models.GroupMember.objects.filter(member=user)
+            innovations = models.GroupMember.objects.filter(member=user, group__role=role)
+            # innovations = models.GroupMember.objects.filter(member=user)
             for innovation in innovations:
                 innovation_pks.append(innovation.group.innovation.id)
 
