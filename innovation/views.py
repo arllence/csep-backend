@@ -444,7 +444,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
             innovation_id = payload['innovation']
             innovation = models.Innovation.objects.get(id=innovation_id)
             payload['innovation'] = innovation
-            print("innovation: ",innovation.__dict__)
+            # print("innovation: ",innovation.__dict__)
 
             support_services = []
                 
@@ -457,7 +457,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
 
 
             links_exists =  models.InnovationSocialLinks.objects.filter(innovation=innovation_id).exists()
-            print("links_exists: ", links_exists)
+            # print("links_exists: ", links_exists)
             if links_exists:
                 instance = models.InnovationSocialLinks.objects.get(innovation=innovation_id)
                 instance.facebook = payload['facebook']
@@ -980,13 +980,13 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     try:
                         # SEND NOTIFICATION
                         subject = "Assigned Evaluation Role"
-                        email = assignee.email
+                        email = member.email
 
                         message_template = read_template("general.html")
-                        body = message_template.substitute(NAME=assignee.first_name,MESSAGE=message,LINK=settings.FRONTEND)
+                        body = message_template.substitute(NAME=member.first_name,MESSAGE=message,LINK=settings.FRONTEND)
 
                         # save notification
-                        models.Notifications.objects.create(innovation=innovation,sender=authenticated_user,recipient=assignee, notification=message)
+                        models.Notifications.objects.create(innovation=innovation,sender=authenticated_user,recipient=member, notification=message)
 
                         # send email
                         user_util.sendmail(email,subject,body)
@@ -1057,7 +1057,28 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     action = "Updated"
                 else:
                     action = "Created"
-                    reviewInstance = models.InnovationReview.objects.create(**payload)          
+                    reviewInstance = models.InnovationReview.objects.create(**payload)   
+
+                    try:
+                        # SEND NOTIFICATION
+                        group = models.Group.objects.filter(innovation=innovation,role="JUNIOR_OFFICER").first()
+                        innovation_name = models.InnovationDetails.objects.get(innovation=innovation_id).innovation_name
+                        notification = f"Innovation {innovation_name}: has been successfully reviewed by assigned Junior Officer."
+
+                        subject = "Application Reviewed"
+                        first_name = group.creator.first_name
+                        email = group.creator.email
+
+                        message_template = read_template("general.html")
+                        message = message_template.substitute(NAME=first_name,MESSAGE=notification,LINK=settings.FRONTEND)
+
+                        # save notification
+                        models.Notifications.objects.create(innovation=innovation,recipient=group.creator, sender=authenticated_user, notification=notification)
+
+                        # send email
+                        user_util.sendmail(email,subject,message)
+                    except Exception as e:
+                        print(e)       
 
                 user_util.log_account_activity(
                     authenticated_user, authenticated_user, f"Junior Innovation Review {action}. Id: " + str(reviewInstance.id) , f"Junior Innovation Review")
@@ -1130,22 +1151,25 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 group.status = False
                 group.save()
 
-                # SEND NOTIFICATION
-                innovation_name = models.InnovationDetails.objects.get(innovation=innovation.id).innovation_name
-                notification = f"Following review of your innovation application: {innovation_name}. We request you to Resubmit after making all the necessary changes as advised"
+                try:
+                    # SEND NOTIFICATION
+                    innovation_name = models.InnovationDetails.objects.get(innovation=innovation.id).innovation_name
+                    notification = f"Following review of your innovation application: {innovation_name}. We request you to Resubmit after making all the necessary changes as advised"
 
-                subject = "Application Resubmission"
-                first_name = innovation.creator.first_name
-                email = innovation.creator.email
+                    subject = "Application Resubmission"
+                    first_name = innovation.creator.first_name
+                    email = innovation.creator.email
 
-                message_template = read_template("general.html")
-                message = message_template.substitute(NAME=first_name,MESSAGE=notification,LINK=settings.FRONTEND)
+                    message_template = read_template("general.html")
+                    message = message_template.substitute(NAME=first_name,MESSAGE=notification,LINK=settings.FRONTEND)
 
-                # save notification
-                models.Notifications.objects.create(innovation=innovation,recipient=innovation.creator, sender=authenticated_user, notification=notification)
+                    # save notification
+                    models.Notifications.objects.create(innovation=innovation,recipient=innovation.creator, sender=authenticated_user, notification=notification)
 
-                # send email
-                user_util.sendmail(email,subject,message)
+                    # send email
+                    user_util.sendmail(email,subject,message)
+                except Exception as e:
+                    print(e)
 
                 user_util.log_account_activity(
                     authenticated_user, authenticated_user, f"Innovation Manager Review {action}. Id: " + str(reviewInstance.id) , f"Innovation Manager Review")
@@ -1236,14 +1260,16 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     subject = "Your Innovation Status"
                     email = innovation.creator.email
 
-                    message_template = read_template("general.html")
-                    body = message_template.substitute(NAME=recipient,MESSAGE=message,LINK=settings.FRONTEND)
+                        message_template = read_template("general.html")
+                        body = message_template.substitute(NAME=recipient,MESSAGE=message,LINK=settings.FRONTEND)
 
-                    # save notification
-                    models.Notifications.objects.create(innovation=innovation,recipient=innovation.creator,sender=authenticated_user, notification=message)
+                        # save notification
+                        models.Notifications.objects.create(innovation=innovation,recipient=innovation.creator,sender=authenticated_user, notification=message)
 
-                    # send email
-                    user_util.sendmail(email,subject,body)
+                        # send email
+                        user_util.sendmail(email,subject,body)
+                    except Exception as e:
+                        print(e)
 
                 user_util.log_account_activity(
                     authenticated_user, authenticated_user, f"Final Innovation Manager Review {action}. Id: " + str(reviewInstance.id) , f"Innovation Manager Final Review")

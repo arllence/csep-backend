@@ -407,14 +407,18 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
     @action(methods=["GET"], detail=False, url_path="check-completed-profile", url_name="check-completed-profile")
     def check_completed_profile(self, request):
         user_id = request.user.id
-        if user_id:
-            check = models.CompletedProfile.objects.filter(user=user_id).exists()
-            info = {
-                "status": check
-            }
-            return Response(info, status=status.HTTP_200_OK)
+        roles = user_util.fetchusergroups(user_id)
+        if 'INNOVATOR' in roles:
+            if user_id:
+                check = models.CompletedProfile.objects.filter(user=user_id).exists()
+                info = {
+                    "status": check
+                }
+                return Response(info, status=status.HTTP_200_OK)
+            else:
+                return Response({'details':'Invalid User'},status=status.HTTP_400_BAD_REQUEST)
         else:
-            return Response({'details':'Invalid User'},status=status.HTTP_400_BAD_REQUEST)
+            return Response({"status": True}, status=status.HTTP_200_OK)
 
 
     # @action(methods=["POST"], detail=False, url_path="verify-email", url_name="verify-email")
