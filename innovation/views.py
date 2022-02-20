@@ -85,7 +85,8 @@ class InnovationViewSet(viewsets.ModelViewSet):
         try:
             innovation_pks = []
 
-            innovations = models.GroupMember.objects.filter(member=user)
+            role = user_util.fetchusergroups(user.id)[0]
+            innovations = models.GroupMember.objects.filter(member=user, group__role=role)
             for innovation in innovations:
                 innovation_pks.append(innovation.group.innovation.id)
 
@@ -1229,7 +1230,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     action = "Created"
                     reviewInstance = models.FinalInnovationManagerReview.objects.create(**payload)    
 
-                if action != 'PROCEED':
+                if action != 'PROCEED' or action != 'UNDER_REVIEW':
                     # SEND NOTIFICATION
                     recipient = innovation.creator.first_name
                     subject = "Your Innovation Status"
