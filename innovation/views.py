@@ -1259,6 +1259,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     recipient = innovation.creator.first_name
                     subject = "Your Innovation Status"
                     email = innovation.creator.email
+                    try:
 
                         message_template = read_template("general.html")
                         body = message_template.substitute(NAME=recipient,MESSAGE=message,LINK=settings.FRONTEND)
