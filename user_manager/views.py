@@ -488,13 +488,24 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                 city = payload['city'].capitalize()
                 address = payload['address']
                 postal = payload['postal']
-                level_of_education = payload['level_of_education']
                 employment = payload['employment']
                 skills = payload['skills']
-                institution_name = payload['institution_name']
-                course_name = payload['course_name']
-                # grade = payload['grade']
-                study_summary = payload['study_summary']
+                try:
+                    level_of_education = payload['level_of_education']
+                    print(level_of_education)
+                except Exception as e:
+                    level_of_education = None
+                    print("level_of_education: ",e)
+                try:
+                    institution_name = payload['institution_name']
+                    course_name = payload['course_name']
+                    study_summary = payload['study_summary']
+                except Exception as e:
+                    institution_name = None
+                    course_name = None
+                    study_summary = None
+                    print(e)
+                
 
                 authenticated_user.first_name = first_name
                 authenticated_user.last_name = last_name
@@ -525,7 +536,6 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                     "user": authenticated_user,
                     "institution_name" : institution_name,
                     "course_name" : course_name,
-                    # "grade" : grade,
                     "study_summary" : study_summary,
                 }
                 is_underage = False
@@ -553,7 +563,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                     user_profile.city = city
                     user_profile.physical_address = address
                     user_profile.postal_code = postal
-                    user_profile.level_of_education = level_of_education
+                    user_profile.education_level = level_of_education
                     user_profile.employment = employment
 
                     user_profile.save()
@@ -584,7 +594,8 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                         education.save()
                     except Exception as e:
                         print(e)
-                        models.Education.objects.create(**education)
+                        if level_of_education:
+                            models.Education.objects.create(**education)
 
                     
                 else:
@@ -618,7 +629,8 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
 
                     
                     # save education details
-                    models.Education.objects.create(**education)
+                    if level_of_education:
+                        models.Education.objects.create(**education)
                     # save completed profile status
                     models.CompletedProfile.objects.create(user=authenticated_user)
 
@@ -1163,7 +1175,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
 
 
 class SuperUserViewSet(viewsets.ModelViewSet):
-    permission_classes = (IsAuthenticated,)
+    # permission_classes = (IsAuthenticated,)
     queryset = models.User.objects.all().order_by('id')
     serializer_class = serializers.SystemUsersSerializer
     search_fields = ['id', ]

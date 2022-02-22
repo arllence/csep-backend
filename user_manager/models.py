@@ -86,7 +86,7 @@ class UserInfo(models.Model):
     state = models.CharField(max_length=100)
     postal_code = models.CharField(max_length=100)
 
-    education_level = models.CharField(max_length=100)
+    education_level = models.CharField(max_length=100, null=True, blank=True)
     employment_status = models.CharField(max_length=100)
     date_created = models.DateTimeField(auto_now_add=True)
 

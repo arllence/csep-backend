@@ -193,7 +193,7 @@ class CreateProfileSerializer(serializers.Serializer):
     city = serializers.CharField()
     address = serializers.CharField() 
     postal = serializers.CharField()
-    level_of_education = serializers.CharField()
+    # level_of_education = serializers.CharField()
     employment = serializers.CharField()
     skills = serializers.ListField()
 
