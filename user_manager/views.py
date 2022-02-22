@@ -1175,7 +1175,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
 
 
 class SuperUserViewSet(viewsets.ModelViewSet):
-    # permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated,)
     queryset = models.User.objects.all().order_by('id')
     serializer_class = serializers.SystemUsersSerializer
     search_fields = ['id', ]
