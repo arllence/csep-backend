@@ -79,6 +79,24 @@ class InnovationViewSet(viewsets.ModelViewSet):
             return Response({'details':'Error Fetching Innovations'},status=status.HTTP_400_BAD_REQUEST)
 
     
+    @action(methods=["GET"], detail=False, url_path="innovation", url_name="innovation")
+    def innovations(self, request):
+        innovation_id = request.query_params.get('innovation_id')
+        if not innovation_id:
+            return Response({'details':'Innovation Id Required'},status=status.HTTP_400_BAD_REQUEST)
+        try:
+            innovation = models.Innovation.objects.get(id=innovation_id)
+            # print(innovation)
+            if innovation:
+                innovations = serializers.FullInnovationSerializer(innovation, many=False,context={"user_id":request.user.id}).data
+                return Response(innovations, status=status.HTTP_200_OK)
+            else:
+                return Response({}, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            return Response({'details':'Error Fetching Innovation'},status=status.HTTP_400_BAD_REQUEST)
+
+    
     @action(methods=["GET"], detail=False, url_path="assigned-innovations", url_name="assigned-innovations")
     def assigned_innovations(self, request):
         user = request.user
