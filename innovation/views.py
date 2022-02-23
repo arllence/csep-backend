@@ -103,11 +103,27 @@ class InnovationViewSet(viewsets.ModelViewSet):
         try:
             innovation_pks = []
 
-            role = user_util.fetchusergroups(user.id)[0]
+            role = None
+            roles = user_util.fetchusergroups(user.id)
+            for item in roles:
+                print(item)
+                if 'LEAD' not in item:
+                    if 'CHIEF' not in item:
+                        role = item
+
+            print(role)
             innovations = models.GroupMember.objects.filter(member=user, group__role=role)
             # innovations = models.GroupMember.objects.filter(member=user)
             for innovation in innovations:
-                innovation_pks.append(innovation.group.innovation.id)
+                # innovation_pks.append(innovation.group.innovation.id)
+                check = True
+                if role == 'JUNIOR_OFFICER':
+                    check = models.InnovationReview.objects.filter(innovation=innovation.group.innovation.id).exists()
+                else:
+                    check = models.Evaluation.objects.filter(innovation=innovation.group.innovation.id).exists()
+
+                if not check:
+                    innovation_pks.append(innovation.group.innovation.id)
 
             innovation = models.Innovation.objects.filter(pk__in=innovation_pks).exclude(status__in=('DROPED','ONGOING'))
             
@@ -116,7 +132,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
 
                 return Response(innovations, status=status.HTTP_200_OK)
             else:
-                return Response({}, status=status.HTTP_200_OK)
+                return Response([], status=status.HTTP_200_OK)
         except Exception as e:
             print(e)
             return Response({'details':'Error Fetching Innovations'},status=status.HTTP_400_BAD_REQUEST)
