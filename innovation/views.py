@@ -80,7 +80,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
 
     
     @action(methods=["GET"], detail=False, url_path="innovation", url_name="innovation")
-    def innovations(self, request):
+    def innovation(self, request):
         innovation_id = request.query_params.get('innovation_id')
         if not innovation_id:
             return Response({'details':'Innovation Id Required'},status=status.HTTP_400_BAD_REQUEST)
