@@ -103,6 +103,8 @@ class InnovationViewSet(viewsets.ModelViewSet):
         try:
             innovation_pks = []
 
+            is_chief_evaluator = False
+
             role = None
             roles = user_util.fetchusergroups(user.id)
             for item in roles:
@@ -110,9 +112,11 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 if 'LEAD' not in item:
                     if 'CHIEF' not in item:
                         role = item
+                    else:
+                        is_chief_evaluator = True
 
-            print(role)
-            innovations = models.GroupMember.objects.filter(member=user, group__role=role)
+            # print(role)
+            innovations = models.GroupMember.objects.filter(member=user, group__role=role).order_by('-date_created')
             # innovations = models.GroupMember.objects.filter(member=user)
             for innovation in innovations:
                 # innovation_pks.append(innovation.group.innovation.id)
@@ -123,6 +127,9 @@ class InnovationViewSet(viewsets.ModelViewSet):
                     check = models.Evaluation.objects.filter(innovation=innovation.group.innovation.id).exists()
 
                 if not check:
+                    innovation_pks.append(innovation.group.innovation.id)
+
+                if is_chief_evaluator:
                     innovation_pks.append(innovation.group.innovation.id)
 
             innovation = models.Innovation.objects.filter(pk__in=innovation_pks).exclude(status__in=('DROPED','ONGOING'))
