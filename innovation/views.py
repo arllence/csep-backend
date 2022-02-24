@@ -60,7 +60,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
             else:
                 return Response({}, status=status.HTTP_200_OK)
         except Exception as e:
-            return Response({'details':'Error fetching'},status=status.HTTP_400_BAD_REQUEST)
+            return Response({'details':'Error Fetching Innovation'},status=status.HTTP_400_BAD_REQUEST)
 
     
     @action(methods=["GET"], detail=False, url_path="innovations", url_name="innovations")
@@ -108,7 +108,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
             role = None
             roles = user_util.fetchusergroups(user.id)
             for item in roles:
-                print(item)
+                # print(item)
                 if 'LEAD' not in item:
                     if 'CHIEF' not in item:
                         role = item
@@ -132,7 +132,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 if is_chief_evaluator:
                     innovation_pks.append(innovation.group.innovation.id)
 
-            innovation = models.Innovation.objects.filter(pk__in=innovation_pks).exclude(status__in=('DROPED','ONGOING'))
+            innovation = models.Innovation.objects.filter(pk__in=innovation_pks).exclude(status__in=('DROPED','ONGOING')).order_by('-date_created')
             
             if innovation:
                 innovations = serializers.FullInnovationSerializer(innovation, many=True, context={"user_id":request.user.id}).data
@@ -148,13 +148,12 @@ class InnovationViewSet(viewsets.ModelViewSet):
     @action(methods=["GET"], detail=False, url_path="my-innovations", url_name="my-innovations")
     def my_innovations(self, request):
         try:
-            innovation = models.Innovation.objects.filter(creator=request.user)
-            innovation = serializers.FullInnovationSerializer(innovation, many=True)
-            
+            innovation = models.Innovation.objects.filter(creator=request.user).order_by('-date_created')
+            innovation = serializers.FullInnovationSerializer(innovation, many=True)            
             return Response(innovation.data, status=status.HTTP_200_OK)
         except Exception as e:
             print(e)
-            return Response({'details':'Error fetching'},status=status.HTTP_400_BAD_REQUEST)
+            return Response({'details':'Error Fetching Your Innovations'},status=status.HTTP_400_BAD_REQUEST)
 
 
     @action(methods=["POST"], detail=False, url_path="create-innovation",url_name="create-innovation")
@@ -515,9 +514,8 @@ class InnovationViewSet(viewsets.ModelViewSet):
                     except ValueError as e:
                         print(e)
                         service = app_manager_models.SupportServices.objects.get(service=service)
-                    if models.InnovationSupportService.objects.filter(service=service).exists():
-                        pass
-                    else:
+                    check = models.InnovationSupportService.objects.filter(service=service,innovation=innovation).exists()
+                    if not check:
                         to_create = {
                             "innovation" : innovation,
                             "service" : service
