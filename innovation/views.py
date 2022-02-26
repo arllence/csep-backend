@@ -124,7 +124,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 if role == 'JUNIOR_OFFICER':
                     check = models.InnovationReview.objects.filter(innovation=innovation.group.innovation.id).exists()
                 else:
-                    check = models.Evaluation.objects.filter(innovation=innovation.group.innovation.id).exists()
+                    check = models.Evaluation.objects.filter(innovation=innovation.group.innovation.id,evaluator=user).exists()
 
                 if not check:
                     innovation_pks.append(innovation.group.innovation.id)
