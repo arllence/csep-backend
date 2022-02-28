@@ -66,7 +66,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
     @action(methods=["GET"], detail=False, url_path="innovations", url_name="innovations")
     def innovations(self, request):
         try:
-            innovation = models.Innovation.objects.exclude(status__in=('DROPED','ONGOING')).order_by('-date_created')
+            innovation = models.Innovation.objects.exclude(status__in=('DROPED','DROPPED','ONGOING')).order_by('-date_created')
             # print(innovation)
             if innovation:
                 innovations = serializers.FullInnovationSerializer(innovation, many=True ,context={"user_id":request.user.id}).data
@@ -104,6 +104,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
             innovation_pks = []
 
             is_chief_evaluator = False
+            is_lead = False
 
             role = None
             roles = user_util.fetchusergroups(user.id)
@@ -114,8 +115,11 @@ class InnovationViewSet(viewsets.ModelViewSet):
                         role = item
                     else:
                         is_chief_evaluator = True
+                else:
+                    if item != 'LEAD_JUNIOR_OFFICER':
+                        is_lead = True
 
-            print(role)
+
             innovations = models.GroupMember.objects.filter(member=user, group__role=role).order_by('-date_created')
             # innovations = models.GroupMember.objects.filter(member=user)
             for innovation in innovations:
@@ -124,15 +128,15 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 if role == 'JUNIOR_OFFICER':
                     check = models.InnovationReview.objects.filter(innovation=innovation.group.innovation.id).exists()
                 else:
-                    check = models.Evaluation.objects.filter(innovation=innovation.group.innovation.id).exists()
+                    check = models.Evaluation.objects.filter(innovation=innovation.group.innovation.id,evaluator=user).exists()
 
                 if not check:
                     innovation_pks.append(innovation.group.innovation.id)
 
-                if is_chief_evaluator:
+                if is_chief_evaluator or is_lead:
                     innovation_pks.append(innovation.group.innovation.id)
 
-            innovation = models.Innovation.objects.filter(pk__in=innovation_pks).exclude(status__in=('DROPED','ONGOING')).order_by('-date_created')
+            innovation = models.Innovation.objects.filter(pk__in=innovation_pks).exclude(status__in=('DROPED','DROPPED','ONGOING')).order_by('-date_created')
             
             if innovation:
                 innovations = serializers.FullInnovationSerializer(innovation, many=True, context={"user_id":request.user.id}).data

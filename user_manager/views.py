@@ -28,6 +28,8 @@ from innovation import models as innovation_models
 from user_manager.forms import PictureUploadForm
 from string import Template
 from email_template import *
+from django.db.models import Q
+
 
 def read_template(filename):
     """
@@ -1117,7 +1119,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
     @action(methods=["GET"], detail=False, url_path="fetch-roles", url_name="fetch-roles")
     def fetch_roles(self, request):
         stage = request.query_params.get('role')
-        
+
         if stage == 'I' or stage == 'II':
             role_name = 'JUNIOR_OFFICER'
         elif stage == 'III':
@@ -1127,10 +1129,11 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
         elif stage == 'V':
             role_name = 'EXTERNAL_EVALUATOR'
 
-        print(role_name)
-        role = Group.objects.filter(name=role_name)
-        # for r in role:
-        print(role)
+        if stage == 'all':
+            role = Group.objects.filter(Q(name='SUBJECT_MATTER_EVALUATOR') | Q(name='EXTERNAL_EVALUATOR'))
+        else:
+            role = Group.objects.filter(name=role_name)
+
         record_info = serializers.RoleSerializer(role, many=True)
         return Response(record_info.data, status=status.HTTP_200_OK)
 
