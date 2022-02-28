@@ -1113,6 +1113,26 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
         role = Group.objects.all()
         record_info = serializers.RoleSerializer(role, many=True)
         return Response(record_info.data, status=status.HTTP_200_OK)
+    
+    @action(methods=["GET"], detail=False, url_path="fetch-roles", url_name="fetch-roles")
+    def fetch_roles(self, request):
+        stage = request.query_params.get('role')
+        
+        if stage == 'I' or stage == 'II':
+            role_name = 'JUNIOR_OFFICER'
+        elif stage == 'III':
+            role_name = 'INTERNAL_EVALUATOR'
+        elif stage == 'IV':
+            role_name = 'SUBJECT_MATTER_EVALUATOR'
+        elif stage == 'V':
+            role_name = 'EXTERNAL_EVALUATOR'
+
+        print(role_name)
+        role = Group.objects.filter(name=role_name)
+        # for r in role:
+        print(role)
+        record_info = serializers.RoleSerializer(role, many=True)
+        return Response(record_info.data, status=status.HTTP_200_OK)
 
 
     @action(methods=["GET"], detail=False, url_path="list-user-roles", url_name="list-user-roles")

@@ -48,7 +48,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
     @action(methods=["GET"], detail=False, url_path="innovation-id", url_name="innovation-id")
     def innovation_id(self, request):
         try:
-            innovation = models.Innovation.objects.filter(creator=request.user,status="ONGOING")
+            innovation = models.Innovation.objects.filter(creator=request.user,status="ONGOING").order_by('-date_created')
             # print(innovation)
             if innovation:
                 innovation = serializers.InnovationSerializer(innovation, many=True)
@@ -66,7 +66,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
     @action(methods=["GET"], detail=False, url_path="innovations", url_name="innovations")
     def innovations(self, request):
         try:
-            innovation = models.Innovation.objects.exclude(status__in=('DROPED','ONGOING'))
+            innovation = models.Innovation.objects.exclude(status__in=('DROPED','ONGOING')).order_by('-date_created')
             # print(innovation)
             if innovation:
                 innovations = serializers.FullInnovationSerializer(innovation, many=True ,context={"user_id":request.user.id}).data
@@ -115,7 +115,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
                     else:
                         is_chief_evaluator = True
 
-            # print(role)
+            print(role)
             innovations = models.GroupMember.objects.filter(member=user, group__role=role).order_by('-date_created')
             # innovations = models.GroupMember.objects.filter(member=user)
             for innovation in innovations:
