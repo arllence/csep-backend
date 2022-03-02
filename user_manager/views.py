@@ -88,12 +88,23 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                 return Response({"details": "Your Account Has Been Suspended,Contact Admin"}, status=status.HTTP_400_BAD_REQUEST)
             else:
                 completed_profile = models.CompletedProfile.objects.filter(user=is_authenticated).exists()
+                
+                try:
+                    role = user_util.fetchusergroups(is_authenticated.id)[0]
+                    role = role.split('_')
+                    if len(role) > 1:
+                        role = " ".join(role)
+                except Exception as e:
+                    print(e)
+                    role = ''
+
                 payload = {
                     'id': str(is_authenticated.id),
                     'email': is_authenticated.email,
                     'name': is_authenticated.first_name,
                     'first_name': is_authenticated.first_name,
                     'last_name': is_authenticated.last_name,
+                    'role': role,
                     # 'password_change_status': change_password,
                     "verified_email": is_authenticated.verified_email,
                     "completed_profile":completed_profile,
