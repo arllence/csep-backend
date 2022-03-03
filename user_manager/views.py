@@ -2,6 +2,7 @@ import json
 import jwt
 import random
 import re
+import logging
 import app_manager
 from rest_framework.views import APIView
 from user_manager import serializers
@@ -30,6 +31,18 @@ from string import Template
 from email_template import *
 from django.db.models import Q
 
+# create and configure logger
+loggername = str(date.today())
+logging.basicConfig(
+    filename=f"/opt/logs/acl/{loggername}",
+    format='%(asctim)s - %(name)s - %(funcName)s:%(lineno)d - %(message)s',
+    filemode='a'
+)
+# new logger object
+logger = logging.getLogger()
+
+# setting threshold of logger
+logger.setLevel(logging.DEBUG)
 
 def read_template(filename):
     """
@@ -95,7 +108,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                     if len(role) > 1:
                         role = " ".join(role)
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                     role = ''
 
                 payload = {
@@ -226,11 +239,11 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                         existing_otp = models.OtpCodes.objects.get(recipient=create_user)
                         existing_otp.delete()
                     except Exception as e:
-                        print(e)
+                        logger.error(e)
                     models.OtpCodes.objects.create(recipient=create_user,otp=otp)
                     user_util.sendmail(recipient,subject,message)
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                 info = {
                     'email': email
                 }
@@ -258,7 +271,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                     check.delete()
                     return Response('Success', status=status.HTTP_200_OK)
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                     return Response({'details':
                                      'Incorrect OTP Code'},status=status.HTTP_400_BAD_REQUEST)
         else:
@@ -306,7 +319,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
     @action(methods=["POST"], detail=False, url_path="reset-user-password", url_name="reset-user-password")
     def reset_user_password(self, request):
         payload = request.data
-        print(payload)
+        # print(payload)
         serializer = serializers.UserPasswordChangeSerializer(data=payload, many=False)
         if serializer.is_valid():
             with transaction.atomic():
@@ -318,14 +331,14 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                 try:
                     userInstance = get_user_model().objects.get(email=email)
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                     return Response({'details': "User Doesn't Exist"}, status=status.HTTP_400_BAD_REQUEST)
 
                 try:
                     existing_otp = models.OtpCodes.objects.get(recipient=userInstance,otp=otp)
                     existing_otp.delete()
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                     return Response({'details': "Incorrect Verification Code"}, status=status.HTTP_400_BAD_REQUEST)
                
                 password_min_length = 8
@@ -368,7 +381,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
     @action(methods=["POST"], detail=False, url_path="resend-otp", url_name="resend-otp")
     def resend_otp(self, request):
         payload = request.data
-        print(payload)
+        # print(payload)
 
         serializer = serializers.ResendOtpSerializer(data=payload, many=False)
 
@@ -382,7 +395,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                     name = user.first_name
                     subject = "Activate Your IEN-AFRICA Account"
                     otp = random.randint(1000,100000)
-                    print(otp)
+                    # print(otp)
                     # message =f"Hi {name}, thanks for joining us \nJust one more step...\nHere is your OTP verification code: {otp}"
                     message_template = read_template("activation_email.html")
                     message = message_template.substitute(NAME=name, OTP=otp)
@@ -390,12 +403,12 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                         existing_otp = models.OtpCodes.objects.get(recipient=user)
                         existing_otp.delete()
                     except Exception as e:
-                        print(e)
+                        logger.error(e)
                     models.OtpCodes.objects.create(recipient=user,otp=otp)
                     mail=user_util.sendmail(recipient,subject,message)
                     return Response('success', status=status.HTTP_200_OK)
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                     return Response({'details':'Error. Try Again Later'}, status=status.HTTP_400_BAD_REQUEST)
                 
         else:
@@ -467,7 +480,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
     #                 }
     #                 return Response(info, status=status.HTTP_200_OK)
     #             except Exception as e:
-    #                 print(e)
+    #                 logger.error(e)
     #                 return Response({'details':
     #                                  'Incorrect OTP Code'},
     #                                 status=status.HTTP_400_BAD_REQUEST)
@@ -505,10 +518,11 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                 skills = payload['skills']
                 try:
                     level_of_education = payload['level_of_education']
-                    print(level_of_education)
+                    # print(level_of_education)
                 except Exception as e:
                     level_of_education = None
-                    print("level_of_education: ",e)
+                    logger.error("level_of_education: ",e)
+                    # print("level_of_education: ",e)
                 try:
                     institution_name = payload['institution_name']
                     course_name = payload['course_name']
@@ -517,7 +531,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                     institution_name = None
                     course_name = None
                     study_summary = None
-                    print(e)
+                    logger.error(e)
                 
 
                 authenticated_user.first_name = first_name
@@ -539,7 +553,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                             code, number = phone
                             phone = phonecode + '-' + number
                         except Exception as e:
-                            print(e)
+                            logger.error(e)
                             
 
                 
@@ -606,7 +620,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                         education.study_summary = study_summary
                         education.save()
                     except Exception as e:
-                        print(e)
+                        logger.error(e)
                         if level_of_education:
                             models.Education.objects.create(**education)
 
@@ -658,7 +672,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
             serializer = serializers.UserProfileSerializer(authenticated_user, many=False)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
-            print(e)
+            logger.error(e)
             return Response({'details':'Error Geting Profile'},status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -710,7 +724,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
             serializer = serializers.CertificationSerializer(data, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
-            print(e)
+            logger.error(e)
             return Response({'details':'Error Geting Certifications'},status=status.HTTP_400_BAD_REQUEST)
 
     
@@ -739,14 +753,6 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
     def create_association(self, request):
         payload = request.data
         authenticated_user = request.user
-        print(payload)
-
-        # try:
-
-        #     payload['expiration'] = datetime.now().strftime('%Y-%m-%d')
-        #     print(payload['expiration'])
-        # except Exception as e:
-        #     print(e)
 
         serializer = serializers.CreateAssociationSerializer(data=payload, many=False)
         if serializer.is_valid():
@@ -797,7 +803,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
             serializer = serializers.AssociationSerializer(data, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
-            print(e)
+            logger.error(e)
             return Response({'details':'Error Geting Associations'},status=status.HTTP_400_BAD_REQUEST)
   
 
@@ -861,7 +867,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
             serializer = serializers.HobbySerializer(data, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
-            print(e)
+            logger.error(e)
             return Response({'details':'Error Geting Hobbies'},status=status.HTTP_400_BAD_REQUEST)
   
 
@@ -990,12 +996,12 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
     #                     existing_otp = models.OtpCodes.objects.get(recipient=user)
     #                     existing_otp.delete()
     #                 except Exception as e:
-    #                     print(e)
+    #                     logger.error(e)
     #                 print(message)
     #                 models.OtpCodes.objects.create(recipient=user,otp=otp)
     #                 mail=user_util.sendmail(recipient,subject,message)
     #             except Exception as e:
-    #                 print(e)
+    #                 logger.error(e)
     #             return Response('success', status=status.HTTP_200_OK)
 
 
@@ -1398,7 +1404,7 @@ class SuperUserViewSet(viewsets.ModelViewSet):
                     is_superuser = True
                 
                 password = self.password_generator()
-                print(password)
+                # print(password)
 
                 hashed_pwd = make_password(password)
                 newuser = {

@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import SupportsAbs
 from user_manager.models import Document
 from rest_framework.views import APIView
@@ -23,6 +24,19 @@ from app_manager import models as app_manager_models
 from string import Template
 
 import innovation
+
+# create and configure logger
+loggername = str(date.today())
+logging.basicConfig(
+    filename=f"/opt/logs/innovation/{loggername}",
+    format='%(asctim)s - %(name)s - %(funcName)s:%(lineno)d - %(message)s',
+    filemode='a'
+)
+# new logger object
+logger = logging.getLogger()
+
+# setting threshold of logger
+logger.setLevel(logging.DEBUG)
 
 
 def read_template(filename):
@@ -60,6 +74,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
             else:
                 return Response({}, status=status.HTTP_200_OK)
         except Exception as e:
+            logger.error(e)
             return Response({'details':'Error Fetching Innovation'},status=status.HTTP_400_BAD_REQUEST)
 
     
@@ -75,7 +90,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
             else:
                 return Response({}, status=status.HTTP_200_OK)
         except Exception as e:
-            print(e)
+            logger.error(e)
             return Response({'details':'Error Fetching Innovations'},status=status.HTTP_400_BAD_REQUEST)
 
     
@@ -93,7 +108,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
             else:
                 return Response({}, status=status.HTTP_200_OK)
         except Exception as e:
-            print(e)
+            logger.error(e)
             return Response({'details':'Error Fetching Innovation'},status=status.HTTP_400_BAD_REQUEST)
 
     
@@ -145,7 +160,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
             else:
                 return Response([], status=status.HTTP_200_OK)
         except Exception as e:
-            print(e)
+            logger.error(e)
             return Response({'details':'Error Fetching Innovations'},status=status.HTTP_400_BAD_REQUEST)
 
     
@@ -156,7 +171,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
             innovation = serializers.FullInnovationSerializer(innovation, many=True)            
             return Response(innovation.data, status=status.HTTP_200_OK)
         except Exception as e:
-            print(e)
+            logger.error(e)
             return Response({'details':'Error Fetching Your Innovations'},status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -254,7 +269,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
                         models.AccreditationBody.objects.create(**data)
                 del payload['accreditation_bodies']
 
-                print(payload)
+                # print(payload)
                 newinstance = models.InnovationDetails.objects.create(**payload)
                 
                 user_util.log_account_activity(
@@ -275,19 +290,19 @@ class InnovationViewSet(viewsets.ModelViewSet):
         serializer = serializers.CreateInnovationDetailsSerializer(data=payload, many=False)
         if serializer.is_valid():
             with transaction.atomic():
-                print(payload)
+                # print(payload)
                 try:
                     innovation = payload['innovation']
                     innovation = models.Innovation.objects.get(id=innovation)
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                     return Response({'details': 'Missing Innovation Id'},status=status.HTTP_400_BAD_REQUEST )
 
                 try:
                     details_id = payload['details_id']
                     details_instance = models.InnovationDetails.objects.get(id=details_id)
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                     return Response({'details': 'Missing Details Id'},status=status.HTTP_400_BAD_REQUEST )
 
                 try:
@@ -295,14 +310,14 @@ class InnovationViewSet(viewsets.ModelViewSet):
                     industry = app_manager_models.Industry.objects.get(id=industry)
                     details_instance.industry = industry
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
 
                 try:
                     development_stage = payload['development_stage']
                     development_stage = app_manager_models.DevelopmentStage.objects.get(id=development_stage)
                     details_instance.development_stage = development_stage
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
 
                 intellectual_property = payload['intellectual_property']
                 if intellectual_property != 'None' or intellectual_property != 'None of the above':
@@ -310,7 +325,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
                         intellectual_property = app_manager_models.IntellectualProperty.objects.get(id=intellectual_property)
                         details_instance.intellectual_property = intellectual_property
                     except Exception as e:
-                        print(e)
+                        logger.error(e)
                 
                 # attended = ['intellectual_property', 'development_stage', 'industry','accreditation_bodies','awards','recognitions']
 
@@ -323,7 +338,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
                         try:
                             name = award['value'].upper()
                         except Exception as e:
-                            print(e)
+                            logger.error(e)
                             name = award.upper()
                         current_data.append(name)
                         if not models.Awards.objects.filter(name=name,innovation=innovation).exists():
@@ -413,12 +428,12 @@ class InnovationViewSet(viewsets.ModelViewSet):
             return Response({'details':'Innovation Id Required'},status=status.HTTP_400_BAD_REQUEST)
         try:
             details = models.InnovationDetails.objects.get(innovation=innovation_id)
-            print("details", details)
+            # print("details", details)
             details = serializers.InnovationDetailsSerializer(details, many=False)
             
             return Response(details.data, status=status.HTTP_200_OK)
         except Exception as e:
-            print(e)
+            logger.error(e)
             return Response({'status': False}, status=status.HTTP_200_OK)
             # return Response({'details':'Error Getting Details'},status=status.HTTP_400_BAD_REQUEST)
 
@@ -476,7 +491,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
             
             return Response(information.data, status=status.HTTP_200_OK)
         except Exception as e:
-            print(e)
+            logger.error(e)
             return Response({'status': False}, status=status.HTTP_200_OK)
 
 
@@ -484,7 +499,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
     def innovation_additional_details(self, request):
         authenticated_user = request.user
         payload = request.data
-        print(payload)
+        # print(payload)
         with transaction.atomic():
             innovation_id = payload['innovation']
             innovation = models.Innovation.objects.get(id=innovation_id)
@@ -496,7 +511,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
             try:
                 support_services = payload['support_service']
             except Exception as e:
-                print(e)
+                logger.error(e)
 
             del payload['support_service']
 
@@ -516,7 +531,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
                     try:
                         service = app_manager_models.SupportServices.objects.get(id=int(service))
                     except ValueError as e:
-                        print(e)
+                        logger.error(e)
                         service = app_manager_models.SupportServices.objects.get(service=service)
                     check = models.InnovationSupportService.objects.filter(service=service,innovation=innovation).exists()
                     if not check:
@@ -568,13 +583,13 @@ class InnovationViewSet(viewsets.ModelViewSet):
             try:
                 links = serializers.InnovationSocialLinksSerializer(links[0], many=False).data
             except Exception as e:
-                print(e)
+                logger.error(e)
                 links = []
             links.update({"support_service":support_service})
             # print(links)
             return Response(links, status=status.HTTP_200_OK)
         except Exception as e:
-            print(e)
+            logger.error(e)
             return Response({}, status=status.HTTP_200_OK)
 
 
@@ -604,7 +619,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
                     im_review.status = False
                     im_review.save()
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
 
                 try:
                     # SEND NOTIFICATION
@@ -624,7 +639,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
                     # send email
                     user_util.sendmail(email,subject,body)
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
 
 
             innovation.edit = False
@@ -644,7 +659,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
             
             return Response(innovation.data, status=status.HTTP_200_OK)
         except Exception as e:
-            print(e)
+            logger.error(e)
             return Response({'details':'Error fetching review'},status=status.HTTP_400_BAD_REQUEST)
 
 class EvaluationViewSet(viewsets.ModelViewSet):
@@ -682,7 +697,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
 
                     update = models.Evaluation.objects.filter(innovation=innovation_id,evaluator=authenticated_user).exists()
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                     return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)
 
                 try:
@@ -690,7 +705,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                         if 'score' in key:
                             payload[key] = int(payload[key])
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                 
                 if update:
                     del payload['innovation']
@@ -717,7 +732,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
             try:
                 innovation = models.Evaluation.objects.get(innovation=innovation_id,evaluator=authenticated_user)
             except Exception as e:
-                print(e)
+                logger.error(e)
                 return Response({"status":False}, status=status.HTTP_200_OK)
             innovation = serializers.CreateEvaluationSerializer(innovation, many=False).data
             if innovation:
@@ -728,7 +743,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 }            
             return Response(innovation, status=status.HTTP_200_OK)
         except Exception as e:
-            print(e)
+            logger.error(e)
             return Response({'details':'Error Fetching Evaluated'},status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -740,7 +755,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
             try:
                 innovation = models.Evaluation.objects.get(innovation=innovation_id,evaluator_id=evaluator_id)
             except Exception as e:
-                print(e)
+                logger.error(e)
                 return Response({"status":False}, status=status.HTTP_200_OK)
             innovation = serializers.CreateEvaluationSerializer(innovation, many=False).data
             if innovation:
@@ -751,7 +766,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 }            
             return Response(innovation, status=status.HTTP_200_OK)
         except Exception as e:
-            print(e)
+            logger.error(e)
             return Response({'details':'Error Fetching Evaluated'},status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -770,7 +785,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     if payload['id'] == '':
                         del payload['id']
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                     return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)
                 
                 try:
@@ -782,7 +797,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     action = 'Edited'
                     instance_id = note_id
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                     newinstance = models.Note.objects.create(**payload)
                     instance_id = newinstance.id
                     action = 'Created'
@@ -804,7 +819,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
             
             return Response(notes, status=status.HTTP_200_OK)
         except Exception as e:
-            print(e)
+            logger.error(e)
             return Response({'details':'Error Fetching Notes'},status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -822,7 +837,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     noteInstance.status = False
                     noteInstance.save()
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                     return Response({"details": "Error Deleting Note"}, status=status.HTTP_400_BAD_REQUEST)
                
                 user_util.log_account_activity(
@@ -849,18 +864,18 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     if payload['id'] == '':
                         del payload['id']
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                     return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)
 
                 file_available = False
                 try:
                     for f in request.FILES.getlist('document'):
                         if f:
-                            print("FIle name", f.name)
+                            # print("FIle name", f.name)
                             payload['file'] = f
                             file_available = True
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                         
                 
                 try:
@@ -875,7 +890,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     action = 'Edited'
                     instance_id = assignment_id
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                     newinstance = models.Assignment.objects.create(**payload)
                     instance_id = newinstance.id
                     action = 'Created'
@@ -900,7 +915,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     assignment = models.Assignment.objects.get(id=assignment_id)
                     payload['assignment'] = assignment
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                     return Response({"details": "Invalid Assignment"}, status=status.HTTP_400_BAD_REQUEST)
 
                 try:
@@ -908,7 +923,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                         if f:
                             payload['file'] = f
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                         
                 
                 newinstance = models.AssignmentResponse.objects.create(**payload)
@@ -932,7 +947,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
             assignments = serializers.AssignmentSerializer(assignments, many=True).data            
             return Response(assignments, status=status.HTTP_200_OK)
         except Exception as e:
-            print(e)
+            logger.error(e)
             return Response({'details':'Error Fetching Assignments'},status=status.HTTP_400_BAD_REQUEST)
 
     
@@ -952,7 +967,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
             assignments = serializers.AssignmentSerializer(assignments, many=True).data            
             return Response(assignments, status=status.HTTP_200_OK)
         except Exception as e:
-            print(e)
+            logger.error(e)
             return Response({'details':'Error Fetching Assignments'},status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -970,7 +985,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     assignmentInstance.status = False
                     assignmentInstance.save()
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                     return Response({"details": "Error Deleting Assignment"}, status=status.HTTP_400_BAD_REQUEST)
                
                 user_util.log_account_activity(
@@ -1000,7 +1015,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     del payload['assignees']
                     del payload['lead']
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                     return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)   
 
                 group_exists = models.Group.objects.filter(innovation=innovation, status=True)
@@ -1035,14 +1050,14 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                         # send email
                         user_util.sendmail(email,subject,body)
                     except Exception as e:
-                        print(e)
+                        logger.error(e)
 
                 assign_role = user_util.award_role(role,lead)
 
-                if assign_role:
-                    print("Role Award Successful")
-                else:
-                    print("Role Award UnSuccessful")
+                # if assign_role:
+                #     print("Role Award Successful")
+                # else:
+                #     print("Role Award UnSuccessful")
 
                 assignees = ", ".join(assignees)   
 
@@ -1082,7 +1097,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     payload['reviewer'] = authenticated_user
                     action = payload['action']
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                     return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)  
 
                 check = models.InnovationReview.objects.filter(reviewer=authenticated_user,innovation=innovation)
@@ -1122,7 +1137,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                         # send email
                         user_util.sendmail(email,subject,message)
                     except Exception as e:
-                        print(e)       
+                        logger.error(e)       
 
                 user_util.log_account_activity(
                     authenticated_user, authenticated_user, f"Junior Innovation Review {action}. Id: " + str(reviewInstance.id) , f"Junior Innovation Review")
@@ -1140,7 +1155,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
             reviews = models.InnovationReview.objects.get(reviewer=authenticated_user, innovation=innovation_id, status=True)
             reviews = serializers.ReviewSerializer(reviews, many=False).data  
         except Exception as e:
-            print(e)
+            logger.error(e)
             reviews = {}
         return Response(reviews, status=status.HTTP_200_OK)
 
@@ -1166,7 +1181,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                         "review" : review,
                     }
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                     return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)  
                     
                 check = models.InnovationManagerReview.objects.filter(reviewer=authenticated_user,innovation=innovation)
@@ -1213,7 +1228,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     # send email
                     user_util.sendmail(email,subject,message)
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
 
                 user_util.log_account_activity(
                     authenticated_user, authenticated_user, f"Innovation Manager Review {action}. Id: " + str(reviewInstance.id) , f"Innovation Manager Review")
@@ -1231,7 +1246,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
             reviews = models.InnovationManagerReview.objects.get(reviewer=authenticated_user, innovation=innovation_id, status=True)
             reviews = serializers.InnovationManagerReviewSerializer(reviews, many=False).data  
         except Exception as e:
-            print(e)
+            logger.error(e)
             reviews = {}
         return Response(reviews, status=status.HTTP_200_OK)
 
@@ -1254,7 +1269,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     review = payload['review']
                     innovation_name = models.InnovationDetails.objects.get(innovation=innovation).innovation_name
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
                     return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST) 
 
                 check = models.FinalInnovationManagerReview.objects.filter(reviewer=authenticated_user,innovation=innovation, status=True)
@@ -1314,7 +1329,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                         # send email
                         user_util.sendmail(email,subject,body)
                     except Exception as e:
-                        print(e)
+                        logger.error(e)
 
                 user_util.log_account_activity(
                     authenticated_user, authenticated_user, f"Final Innovation Manager Review {action}. Id: " + str(reviewInstance.id) , f"Innovation Manager Final Review")
@@ -1332,11 +1347,11 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 notification = models.Notifications.objects.filter(recipient=authenticated_user, is_seen=False).order_by('-date_created')
                 notification = serializers.NotificationsSerializer(notification, many=True).data  
             except Exception as e:
-                print(e)
+                logger.error(e)
                 notification = {}
             return Response(notification, status=status.HTTP_200_OK)
         except Exception as e:
-            print(e)
+            logger.error(e)
 
 
     @action(methods=["GET"], detail=False, url_path="mark-notifications-as-read", url_name="mark-notifications-as-read")
@@ -1350,7 +1365,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     notification.is_seen = True
                     notification.save()
             except Exception as e:
-                print(e)
+                logger.error(e)
             return Response('success', status=status.HTTP_200_OK)
         except Exception as e:
-            print(e)
+            logger.error(e)

@@ -4,7 +4,21 @@ from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 from django.conf import settings
 from django.contrib.auth import get_user_model
+import logging
+from datetime import date
 
+# create and configure logger
+loggername = str(date.today())
+logging.basicConfig(
+    filename=f"/opt/logs/utils/{loggername}",
+    format='%(asctim)s - %(name)s - %(funcName)s:%(lineno)d - %(message)s',
+    filemode='a'
+)
+# new logger object
+logger = logging.getLogger()
+
+# setting threshold of logger
+logger.setLevel(logging.DEBUG)
 
 def fetchusergroups(userid):
     userroles = []
@@ -46,7 +60,7 @@ def sendmail(recipient,subject,message):
         else:
             return False
     except Exception as e:
-        print(e)
+        logger.error(e)
         return False
 
 
@@ -61,7 +75,7 @@ def award_role(role,account_id):
         record_instance.groups.add(group)
         return True
     except Exception as e:
-        print(e)
+        logger.error(e)
         return False
 
 def revoke_role(role,account_id):
@@ -69,7 +83,7 @@ def revoke_role(role,account_id):
         try:
             custom_revoke_role(role,account_id)
         except Exception as e:
-            print(e)
+            logger.error(e)
         role = "CHIEF_EVALUATOR"
     else:
         role = "LEAD_" + role
@@ -79,7 +93,7 @@ def revoke_role(role,account_id):
         record_instance.groups.remove(group)
         return True
     except Exception as e:
-        print(e)
+        logger.error(e)
         return False
 
 
@@ -94,7 +108,7 @@ def custom_revoke_role(role,account_id):
         record_instance.groups.remove(group)
         return True
     except Exception as e:
-        print(e)
+        logger.error(e)
         return False
         
 
