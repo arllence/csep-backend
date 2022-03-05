@@ -345,6 +345,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
     def get_is_evaluated(self, obj):
         try:
             user_id = None
+            roles = []
             try:
                 user_id = str(self.context["user_id"])
                 roles = user_util.fetchusergroups(user_id)

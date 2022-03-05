@@ -660,7 +660,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
         innovation_id = request.query_params.get('innovation_id')
         try:
             innovation = models.Innovation.objects.get(id=innovation_id)
-            innovation = serializers.FullInnovationSerializer(innovation, many=False)
+            innovation = serializers.FullInnovationSerializer(innovation, many=False, context={"user_id":request.user.id})
             
             return Response(innovation.data, status=status.HTTP_200_OK)
         except Exception as e:
