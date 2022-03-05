@@ -1166,7 +1166,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
             reviews = serializers.ReviewSerializer(reviews, many=False).data  
         except Exception as e:
             logger.error(e)
-            reviews = {}
+            reviews = []
         return Response(reviews, status=status.HTTP_200_OK)
 
 
