@@ -42,7 +42,7 @@ logging.basicConfig(
 logger = logging.getLogger()
 
 # setting threshold of logger
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 def read_template(filename):
     """
@@ -66,7 +66,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
     def login_user(self, request):
         payload = request.data
         # print(payload)
-        email = request.data.get('email')
+        email = request.data.get('email').strip()
         password = request.data.get('password')
         if email is None:
             return Response({"details": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)

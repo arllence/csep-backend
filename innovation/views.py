@@ -80,15 +80,20 @@ class InnovationViewSet(viewsets.ModelViewSet):
     
     @action(methods=["GET"], detail=False, url_path="innovations", url_name="innovations")
     def innovations(self, request):
+        user = request.user
         try:
-            innovation = models.Innovation.objects.exclude(status__in=('DROPED','DROPPED','ONGOING')).order_by('-date_created')
-            # print(innovation)
-            if innovation:
-                innovations = serializers.FullInnovationSerializer(innovation, many=True ,context={"user_id":request.user.id}).data
+            roles = user_util.fetchusergroups(user.id)
+            if "LEAD_INNOVATION_MANAGER" in roles:
+                innovation = models.Innovation.objects.exclude(status__in=('DROPED','DROPPED','ONGOING')).order_by('-date_created')
+                # print(innovation)
+                if innovation:
+                    innovations = serializers.FullInnovationSerializer(innovation, many=True ,context={"user_id":request.user.id}).data
 
-                return Response(innovations, status=status.HTTP_200_OK)
+                    return Response(innovations, status=status.HTTP_200_OK)
+                else:
+                    return Response([], status=status.HTTP_200_OK)
             else:
-                return Response({}, status=status.HTTP_200_OK)
+                return Response([], status=status.HTTP_200_OK)
         except Exception as e:
             logger.error(e)
             return Response({'details':'Error Fetching Innovations'},status=status.HTTP_400_BAD_REQUEST)
@@ -141,7 +146,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 # innovation_pks.append(innovation.group.innovation.id)
                 check = True
                 if role == 'JUNIOR_OFFICER':
-                    check = models.InnovationReview.objects.filter(innovation=innovation.group.innovation.id).exists()
+                    check = models.InnovationReview.objects.filter(innovation=innovation.group.innovation.id,reviewer=user).exists()
                 else:
                     check = models.Evaluation.objects.filter(innovation=innovation.group.innovation.id,evaluator=user).exists()
 

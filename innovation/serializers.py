@@ -7,6 +7,7 @@ from . import models
 from user_manager.serializers import UsersSerializer
 from app_manager import serializers as app_manager_serializers
 from app_manager import models as app_manager_models
+from user_manager.utils import user_util
 
 import innovation
 
@@ -290,8 +291,8 @@ class FullInnovationSerializer(serializers.ModelSerializer):
 
     def get_review(self, obj):
         try:
-            group = models.InnovationReview.objects.get(innovation=obj.id)
-            serializer = ReviewSerializer(group, many=False)
+            group = models.InnovationReview.objects.filter(innovation=obj.id)
+            serializer = ReviewSerializer(group, many=True)
             return serializer.data
         except Exception as e:
             print(e)
@@ -346,9 +347,13 @@ class FullInnovationSerializer(serializers.ModelSerializer):
             user_id = None
             try:
                 user_id = str(self.context["user_id"])
+                roles = user_util.fetchusergroups(user_id)
             except Exception as e:
                 print(e)
-            evaluated = models.Evaluation.objects.filter(innovation=obj.id,evaluator=user_id).exists()
+            if 'INNOVATOR' in roles:
+                evaluated = models.InnovationReview.objects.filter(innovation=obj.id,evaluator=user_id).exists()
+            else:
+                evaluated = models.Evaluation.objects.filter(innovation=obj.id,evaluator=user_id).exists()
             return evaluated
         except Exception as e:
             print(e)
