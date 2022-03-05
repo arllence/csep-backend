@@ -355,6 +355,7 @@ class InnovationReview(models.Model): # TODO: Rename this model to JuniorInnovat
     action = models.CharField(max_length=255)
     status = models.BooleanField(default=True)
     is_seen = models.BooleanField(default=False)
+    is_lead = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True)
     
     class Meta:

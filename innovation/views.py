@@ -136,8 +136,8 @@ class InnovationViewSet(viewsets.ModelViewSet):
                     else:
                         is_chief_evaluator = True
                 else:
-                    if item != 'LEAD_JUNIOR_OFFICER':
-                        is_lead = True
+                    # if item != 'LEAD_JUNIOR_OFFICER':
+                    is_lead = True
 
 
             innovations = models.GroupMember.objects.filter(member=user, group__role=role).order_by('-date_created')
@@ -1093,6 +1093,8 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         authenticated_user = request.user
         payload = request.data
 
+        roles = user_util.fetchusergroups(authenticated_user.id)
+
         serializer = serializers.CreateReviewSerializer(data=payload, many=False)
         if serializer.is_valid():
             with transaction.atomic():
@@ -1102,6 +1104,8 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     payload['innovation'] = innovation
                     payload['reviewer'] = authenticated_user
                     action = payload['action']
+                    if 'LEAD_JUNIOR_OFFICER' in roles:
+                        payload['is_lead'] = True
                 except Exception as e:
                     logger.error(e)
                     return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)  
