@@ -708,6 +708,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     logger.error(e)
                 
                 if update:
+                    return Response("success", status=status.HTTP_200_OK) #TODO: remove
                     del payload['innovation']
                     models.Evaluation.objects.filter(innovation=innovation_id).update(**payload)
                     action = "Updated"

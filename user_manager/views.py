@@ -42,7 +42,7 @@ logging.basicConfig(
 logger = logging.getLogger()
 
 # setting threshold of logger
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 def read_template(filename):
     """
@@ -261,7 +261,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
 
         if serializer.is_valid():
             with transaction.atomic():
-                otp = payload['otp']
+                otp = payload['otp'].strip()
                 email = payload['email']
                 try:
                     check = models.OtpCodes.objects.get(otp=otp)
@@ -323,8 +323,8 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
         serializer = serializers.UserPasswordChangeSerializer(data=payload, many=False)
         if serializer.is_valid():
             with transaction.atomic():
-                email = payload['email']
-                otp = payload['otp']
+                email = payload['email'].strip()
+                otp = payload['otp'].strip()
                 password = payload['password']
                 confirm_password = payload['confirm_password']
 
