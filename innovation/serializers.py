@@ -352,7 +352,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
             except Exception as e:
                 print(e)
             if 'JUNIOR_OFFICER' in roles:
-                evaluated = models.InnovationReview.objects.filter(innovation=obj.id,evaluator=user_id).exists()
+                evaluated = models.InnovationReview.objects.filter(innovation=obj.id,reviewer=user_id).exists()
             else:
                 evaluated = models.Evaluation.objects.filter(innovation=obj.id,evaluator=user_id).exists()
             return evaluated
