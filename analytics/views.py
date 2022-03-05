@@ -187,6 +187,40 @@ class AnalyticsViewSet(viewsets.ViewSet):
             "series" : series,
         }
         return Response(info, status=status.HTTP_200_OK)
+
+
+    @action(
+        methods=["GET"],
+        detail=False,
+        url_path="junior-counts",
+        url_name="junior-counts",
+    )
+    def junior_count(self, request):
+        user = request.user
+        role = 'JUNIOR_OFFICER'
+
+        innovations = innovation_models.GroupMember.objects.filter(member=user, group__role=role).order_by('-date_created')
+
+        total = innovations.count()
+        completed =  0
+        pending = 0
+
+        for innovation in innovations:
+            check = innovation_models.InnovationReview.objects.filter(innovation=innovation.group.innovation.id,reviewer=user).exists()
+            
+            if check:
+                completed += 1
+            else:
+                pending += 1
+
+
+        info = {
+            "total" : total,
+            "completed" : completed,
+            "pending" : pending,
+            "assigned" : pending,
+        }
+        return Response(info, status=status.HTTP_200_OK)
     
 
    
