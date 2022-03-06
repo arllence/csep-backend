@@ -398,7 +398,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                     name = user.first_name
                     subject = "Activate Your IEN-AFRICA Account"
                     otp = random.randint(1000,100000)
-                    # print(otp)
+                    print(otp)
                     # message =f"Hi {name}, thanks for joining us \nJust one more step...\nHere is your OTP verification code: {otp}"
                     message_template = read_template("activation_email.html")
                     message = message_template.substitute(NAME=name, OTP=otp)
