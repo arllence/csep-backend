@@ -138,6 +138,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
                         role = item
                     else:
                         is_chief_evaluator = True
+                        role = 'EXTERNAL_EVALUATOR'
                 else:
                     # if item != 'LEAD_JUNIOR_OFFICER':
                     is_lead = True
