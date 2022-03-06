@@ -68,6 +68,10 @@ def sendmail(recipient,subject,message):
 
 def award_role(role,account_id):
     if role == "EXTERNAL_EVALUATOR":
+        try:
+            custom_revoke_role(role,account_id)
+        except Exception as e:
+            logger.error(e)
         role = "CHIEF_EVALUATOR"
     else:
         role = "LEAD_" + role
@@ -82,10 +86,6 @@ def award_role(role,account_id):
 
 def revoke_role(role,account_id):
     if role == "EXTERNAL_EVALUATOR":
-        try:
-            custom_revoke_role(role,account_id)
-        except Exception as e:
-            logger.error(e)
         role = "CHIEF_EVALUATOR"
     else:
         role = "LEAD_" + role
@@ -100,10 +100,6 @@ def revoke_role(role,account_id):
 
 
 def custom_revoke_role(role,account_id):
-    if role == "EXTERNAL_EVALUATOR":
-        role = "CHIEF_EVALUATOR"
-    else:
-        role = "LEAD_" + role
     try:
         record_instance = get_user_model().objects.get(id=account_id)
         group = Group.objects.get(name=role)  
