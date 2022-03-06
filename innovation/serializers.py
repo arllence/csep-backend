@@ -206,6 +206,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
     sme_reviews = serializers.SerializerMethodField()
     ee_reviews = serializers.SerializerMethodField()
     is_evaluated = serializers.SerializerMethodField()
+    get_date_assigned = serializers.SerializerMethodField()
 
     class Meta:
         model = models.Innovation
@@ -240,6 +241,23 @@ class FullInnovationSerializer(serializers.ModelSerializer):
             social_links = models.InnovationSocialLinks.objects.get(innovation=obj)
             serializer = InnovationSocialLinksSerializer(social_links, many=False)
             return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+
+    def get_date_assigned(self, obj):
+        try:
+            jo = models.Group.objects.get(innovation=obj, role='JUNIOR_OFFICER').date_created
+            ie = models.Group.objects.get(innovation=obj, role='INTERNAL_EVALUATOR').date_created
+            sme = models.Group.objects.get(innovation=obj, role='INTERNAL_EVALUATOR').date_created
+            ee = models.Group.objects.get(innovation=obj, role='INTERNAL_EVALUATOR').date_created
+            date_assigned = {
+                "jo":jo,
+                "ie":ie,
+                "sme":sme,
+                "ee":ee,
+            }
+            return date_assigned
         except Exception as e:
             print(e)
             return []
