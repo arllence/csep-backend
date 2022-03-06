@@ -206,7 +206,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
     sme_reviews = serializers.SerializerMethodField()
     ee_reviews = serializers.SerializerMethodField()
     is_evaluated = serializers.SerializerMethodField()
-    get_date_assigned = serializers.SerializerMethodField()
+    date_assigned = serializers.SerializerMethodField()
 
     class Meta:
         model = models.Innovation
