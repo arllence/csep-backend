@@ -84,7 +84,7 @@ LOGGING = {
         'file': {
             'level': 'WARNING',
             'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs/warning.log',
+            'filename': '/opt/logs/warning.log',
         },
     },
     # A logger for WARNING which has a handler called 'file'. A logger can have multiple handler
