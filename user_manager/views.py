@@ -31,18 +31,21 @@ from string import Template
 from email_template import *
 from django.db.models import Q
 
-# create and configure logger
-loggername = str(date.today())
-logging.basicConfig(
-    filename=f"/opt/logs/acl/{loggername}",
-    format='%(asctim)s - %(name)s - %(funcName)s:%(lineno)d - %(message)s',
-    filemode='a'
-)
-# new logger object
-logger = logging.getLogger()
+# # create and configure logger
+# loggername = str(date.today())
+# logging.basicConfig(
+#     filename=f"/opt/logs/acl/{loggername}",
+#     format='%(asctim)s - %(name)s - %(funcName)s:%(lineno)d - %(message)s',
+#     filemode='a'
+# )
+# # new logger object
+# logger = logging.getLogger()
 
-# setting threshold of logger
-logger.setLevel(logging.DEBUG)
+# # setting threshold of logger
+# logger.setLevel(logging.DEBUG)
+
+# Get an instance of a logger
+logger = logging.getLogger(__name__)
 
 def read_template(filename):
     """

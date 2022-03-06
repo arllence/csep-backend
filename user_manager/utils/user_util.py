@@ -7,18 +7,20 @@ from django.contrib.auth import get_user_model
 import logging
 from datetime import date
 
-# create and configure logger
-loggername = str(date.today())
-logging.basicConfig(
-    filename=f"/opt/logs/utils/{loggername}",
-    format='%(asctim)s - %(name)s - %(funcName)s:%(lineno)d - %(message)s',
-    filemode='a'
-)
-# new logger object
-logger = logging.getLogger()
+# # create and configure logger
+# loggername = str(date.today())
+# logging.basicConfig(
+#     filename=f"/opt/logs/utils/{loggername}",
+#     format='%(asctim)s - %(name)s - %(funcName)s:%(lineno)d - %(message)s',
+#     filemode='a'
+# )
+# # new logger object
+# logger = logging.getLogger()
 
-# setting threshold of logger
-logger.setLevel(logging.DEBUG)
+# # setting threshold of logger
+# logger.setLevel(logging.DEBUG)
+# Get an instance of a logger
+logger = logging.getLogger(__name__)
 
 def fetchusergroups(userid):
     userroles = []
