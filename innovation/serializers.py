@@ -247,10 +247,23 @@ class FullInnovationSerializer(serializers.ModelSerializer):
 
     def get_date_assigned(self, obj):
         try:
-            jo = models.Group.objects.get(innovation=obj, role='JUNIOR_OFFICER').date_created
-            ie = models.Group.objects.get(innovation=obj, role='INTERNAL_EVALUATOR').date_created
-            sme = models.Group.objects.get(innovation=obj, role='SUBJECT_MATTER_EVALUATOR').date_created
-            ee = models.Group.objects.get(innovation=obj, role='EVALUATOR_EVALUATOR').date_created
+            try:
+                jo = models.Group.objects.get(innovation=obj, role='JUNIOR_OFFICER').date_created
+            except:
+                jo = ''
+            try:
+                ie = models.Group.objects.get(innovation=obj, role='INTERNAL_EVALUATOR').date_created
+            except:
+                ie = ''
+            try:
+                sme = models.Group.objects.get(innovation=obj, role='SUBJECT_MATTER_EVALUATOR').date_created
+            except:
+                sme = ''
+            try:
+                ee = models.Group.objects.get(innovation=obj, role='EVALUATOR_EVALUATOR').date_created
+            except:
+                ee = ''
+                
             date_assigned = {
                 "jo":jo,
                 "ie":ie,
