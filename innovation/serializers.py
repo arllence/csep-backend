@@ -260,10 +260,10 @@ class FullInnovationSerializer(serializers.ModelSerializer):
             except:
                 sme = ''
             try:
-                ee = models.Group.objects.get(innovation=obj, role='EVALUATOR_EVALUATOR').date_created
+                ee = models.Group.objects.get(innovation=obj, role='EXTERNAL_EVALUATOR').date_created
             except:
                 ee = ''
-                
+
             date_assigned = {
                 "jo":jo,
                 "ie":ie,
