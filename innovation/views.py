@@ -1215,9 +1215,10 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 innovation.status = "RESUBMIT"
                 innovation.save()   
 
-                junior_review = models.InnovationReview.objects.get(innovation=innovation, status=True)   
-                junior_review.status = False
-                junior_review.save() 
+                junior_review = models.InnovationReview.objects.filter(innovation=innovation, status=True)   
+                for review in junior_review:
+                    review.status = False
+                    review.save() 
 
                 group = models.Group.objects.get(innovation=innovation, role='JUNIOR_OFFICER', status=True)
                 group.status = False
