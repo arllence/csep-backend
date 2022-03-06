@@ -249,8 +249,8 @@ class FullInnovationSerializer(serializers.ModelSerializer):
         try:
             jo = models.Group.objects.get(innovation=obj, role='JUNIOR_OFFICER').date_created
             ie = models.Group.objects.get(innovation=obj, role='INTERNAL_EVALUATOR').date_created
-            sme = models.Group.objects.get(innovation=obj, role='INTERNAL_EVALUATOR').date_created
-            ee = models.Group.objects.get(innovation=obj, role='INTERNAL_EVALUATOR').date_created
+            sme = models.Group.objects.get(innovation=obj, role='SUBJECT_MATTER_EVALUATOR').date_created
+            ee = models.Group.objects.get(innovation=obj, role='EVALUATOR_EVALUATOR').date_created
             date_assigned = {
                 "jo":jo,
                 "ie":ie,
