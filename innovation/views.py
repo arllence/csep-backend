@@ -164,8 +164,9 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 
                 if innovation:
                     innovations = serializers.FullInnovationSerializer(innovation, many=True, context={"user_id":request.user.id}).data
-
                     return Response(innovations, status=status.HTTP_200_OK)
+                    
+            return Response([], status=status.HTTP_200_OK)
 
         except Exception as e:
             logger.error(e)
