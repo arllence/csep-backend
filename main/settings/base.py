@@ -1,5 +1,6 @@
 # import django_heroku
-import os, date
+import os
+from datetime import date
 from dotenv import load_dotenv
 load_dotenv()
 
