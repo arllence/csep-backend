@@ -114,10 +114,73 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 innovations = serializers.FullInnovationSerializer(innovation, many=False,context={"user_id":request.user.id}).data
                 return Response(innovations, status=status.HTTP_200_OK)
             else:
-                return Response({}, status=status.HTTP_200_OK)
+                return Response([], status=status.HTTP_200_OK)
         except Exception as e:
             logger.error(e)
             return Response({'details':'Error Fetching Innovation'},status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["GET"], detail=False, url_path="filter-innovations", url_name="filter-innovations")
+    def filter_innovations(self, request):
+        user = request.user
+        search_value = request.query_params.get('search_value')
+        if not search_value:
+            return Response({'details':'Status Required'},status=status.HTTP_400_BAD_REQUEST)
+        
+        is_chief_evaluator = False
+        is_lead_innovation_manager = False
+        is_lead = False
+        role = None
+
+        roles = user_util.fetchusergroups(user.id)
+
+        for item in roles:
+            if 'LEAD' not in item:
+                if 'CHIEF' not in item:
+                    role = item
+                else:
+                    is_chief_evaluator = True
+                    role = 'EXTERNAL_EVALUATOR'
+            else:
+                is_lead = True
+                if item == 'LEAD_INNOVATION_MANAGER':
+                    is_lead_innovation_manager = True
+
+        try:    
+            if is_lead_innovation_manager:
+                innovations = models.Innovation.objects.filter(status=search_value)
+                if innovations:
+                    innovations = serializers.FullInnovationSerializer(innovations, many=True,context={"user_id":request.user.id}).data
+                    return Response(innovations, status=status.HTTP_200_OK)
+                else:
+                    return Response([], status=status.HTTP_200_OK)
+            else:
+                innovations = models.GroupMember.objects.filter(member=user, group__role=role).order_by('-date_created')
+                innovation_pks = []
+                for innovation in innovations:
+                    # innovation_pks.append(innovation.group.innovation.id)
+                    check = True
+                    if role == 'JUNIOR_OFFICER':
+                        check = models.InnovationReview.objects.filter(innovation=innovation.group.innovation.id,reviewer=user).exists()
+                    else:
+                        check = models.Evaluation.objects.filter(innovation=innovation.group.innovation.id,evaluator=user).exists()
+
+                    if not check:
+                        innovation_pks.append(innovation.group.innovation.id)
+
+                    if is_chief_evaluator or is_lead:
+                        innovation_pks.append(innovation.group.innovation.id)
+
+                innovation = models.Innovation.objects.filter(pk__in=innovation_pks, status=search_value).order_by('-date_created')
+                
+                if innovation:
+                    innovations = serializers.FullInnovationSerializer(innovation, many=True, context={"user_id":request.user.id}).data
+
+                    return Response(innovations, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(e)
+            return Response({'details':'Error Fetching Analytics'},status=status.HTTP_400_BAD_REQUEST)
 
     
     @action(methods=["GET"], detail=False, url_path="assigned-innovations", url_name="assigned-innovations")
