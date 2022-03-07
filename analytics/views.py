@@ -13,6 +13,7 @@ from innovation import models as innovation_models
 from user_manager import models as user_manager_models
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from datetime import datetime
+from user_manager.utils import user_util
 date_class = dates.DateClass()
 
 
@@ -199,6 +200,21 @@ class AnalyticsViewSet(viewsets.ViewSet):
         user = request.user
         role = 'JUNIOR_OFFICER'
 
+        role = None
+        roles = user_util.fetchusergroups(user.id)
+        for item in roles:
+            # print(item)
+            if 'LEAD' not in item:
+                if 'CHIEF' not in item:
+                    role = item
+                else:
+                    is_chief_evaluator = True
+                    role = 'EXTERNAL_EVALUATOR'
+            else:
+                # if item != 'LEAD_JUNIOR_OFFICER':
+                is_lead = True
+
+        
         innovations = innovation_models.GroupMember.objects.filter(member=user, group__role=role).order_by('-date_created')
 
         total = innovations.count()
@@ -206,7 +222,10 @@ class AnalyticsViewSet(viewsets.ViewSet):
         pending = 0
 
         for innovation in innovations:
-            check = innovation_models.InnovationReview.objects.filter(innovation=innovation.group.innovation.id,reviewer=user).exists()
+            if role == 'JUNIOR_OFFICER':
+                check = innovation_models.InnovationReview.objects.filter(innovation=innovation.group.innovation.id,reviewer=user).exists()
+            else:
+                check = innovation_models.Evaluation.objects.filter(innovation=innovation.group.innovation.id,evaluator=user).exists()
             
             if check:
                 completed += 1
