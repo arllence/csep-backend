@@ -266,7 +266,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
                 under_review = innovation_models.Innovation.objects.filter(status='UNDER_REVIEW').count()
                 incomplete = innovation_models.Innovation.objects.filter(status='ONGOING').count()
                 resubmitted = innovation_models.Innovation.objects.filter(status='RESUBMITTED').count()
-                pendind_resubmission = innovation_models.Innovation.objects.filter(status='RESUBMIT').count()
+                pending_resubmission = innovation_models.Innovation.objects.filter(status='RESUBMIT').count()
 
                 info = {
                     "approved": approved,
@@ -274,7 +274,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
                     "under_review": under_review,
                     "incomplete": incomplete,
                     "resubmitted": resubmitted,
-                    "pendind_resubmission": pendind_resubmission,
+                    "pending_resubmission": pending_resubmission,
                 }
                 
                 return Response(info, status=status.HTTP_200_OK)
