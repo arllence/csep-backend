@@ -22,6 +22,7 @@ from django.contrib.auth.models import Permission, Group
 from django.db import IntegrityError, transaction
 from app_manager import models as app_manager_models
 from string import Template
+from django.db.models import Q
 
 import innovation
 
@@ -123,8 +124,9 @@ class InnovationViewSet(viewsets.ModelViewSet):
     @action(methods=["GET"], detail=False, url_path="filter-innovations", url_name="filter-innovations")
     def filter_innovations(self, request):
         user = request.user
-        search_value = request.query_params.get('search_value')
-        if not search_value:
+        status = request.query_params.get('status')
+        stage = request.query_params.get('stage')
+        if not status:
             return Response({'details':'Status Required'},status=status.HTTP_400_BAD_REQUEST)
         
         is_chief_evaluator = False
@@ -148,7 +150,15 @@ class InnovationViewSet(viewsets.ModelViewSet):
 
         try:    
             if is_lead_innovation_manager:
-                innovations = models.Innovation.objects.filter(status=search_value)
+                if status == 'ALL' and stage == 'ALL':
+                    innovations = models.Innovation.objects.all()
+                elif status == 'ALL' and stage != 'ALL':
+                    innovations = models.Innovation.objects.filter(stage=stage).order_by('-date_created')
+                elif status != 'ALL' and stage == 'ALL':
+                    innovations = models.Innovation.objects.filter(status=status).order_by('-date_created')
+                elif status != 'ALL' and stage != 'ALL':
+                    innovations = models.Innovation.objects.filter(status=status,stage=stage).order_by('-date_created')
+
                 if innovations:
                     innovations = serializers.FullInnovationSerializer(innovations, many=True,context={"user_id":request.user.id}).data
                     return Response(innovations, status=status.HTTP_200_OK)
@@ -160,12 +170,21 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 for innovation in innovations:
                     innovation_pks.append(innovation.group.innovation.id)
                    
-                innovation = models.Innovation.objects.filter(pk__in=innovation_pks, status=search_value).order_by('-date_created')
+                # innovation = models.Innovation.objects.filter(pk__in=innovation_pks, status=status).order_by('-date_created')
+
+                if status == 'ALL' and stage == 'ALL':
+                    innovation = models.Innovation.objects.filter(pk__in=innovation_pks).order_by('-date_created')
+                elif status == 'ALL' and stage != 'ALL':
+                    innovation = models.Innovation.objects.filter(pk__in=innovation_pks, stage=stage).order_by('-date_created')
+                elif status != 'ALL' and stage == 'ALL':
+                    innovation = models.Innovation.objects.filter(pk__in=innovation_pks, status=status).order_by('-date_created')
+                elif status != 'ALL' and stage != 'ALL':
+                    innovation = models.Innovation.objects.filter(pk__in=innovation_pks, status=status, stage=stage).order_by('-date_created')
                 
                 if innovation:
                     innovations = serializers.FullInnovationSerializer(innovation, many=True, context={"user_id":request.user.id}).data
                     return Response(innovations, status=status.HTTP_200_OK)
-                    
+
             return Response([], status=status.HTTP_200_OK)
 
         except Exception as e:
