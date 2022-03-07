@@ -1,3 +1,4 @@
+from binascii import Incomplete
 from django.contrib.auth import get_user_model
 # from edms.permissions import system_permissions
 from rest_framework.permissions import IsAuthenticated
@@ -8,7 +9,7 @@ from analytics import serializers
 # from edms import models as edms_models
 from django.db.models import Count, Q
 from analytics.utils import dates
-import json
+import json, logging
 from innovation import models as innovation_models
 from user_manager import models as user_manager_models
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
@@ -16,6 +17,8 @@ from datetime import datetime
 from user_manager.utils import user_util
 date_class = dates.DateClass()
 
+# Get an instance of a logger
+logger = logging.getLogger(__name__)
 
 class AnalyticsViewSet(viewsets.ViewSet):
     permission_classes = [
@@ -240,6 +243,47 @@ class AnalyticsViewSet(viewsets.ViewSet):
             "assigned" : pending,
         }
         return Response(info, status=status.HTTP_200_OK)
+
+    @action(methods=["GET"], detail=False, url_path="im-analytics", url_name="im-analytics")
+    def get_im_analytics(self, request):
+        user = request.user
+        
+        is_chief_evaluator = False
+        is_lead_innovation_manager = False
+        is_lead = False
+        role = None
+
+        roles = user_util.fetchusergroups(user.id)
+
+        for item in roles:
+            if item == 'LEAD_INNOVATION_MANAGER':
+                is_lead_innovation_manager = True
+
+        try:    
+            if is_lead_innovation_manager:
+                approved = innovation_models.Innovation.objects.filter(status='APPROVED').count()
+                dropped = innovation_models.Innovation.objects.filter(status='DROPPED').count()
+                under_review = innovation_models.Innovation.objects.filter(status='UNDER_REVIEW').count()
+                incomplete = innovation_models.Innovation.objects.filter(status='ONGOING').count()
+                resubmitted = innovation_models.Innovation.objects.filter(status='RESUBMITTED').count()
+                pendind_resubmission = innovation_models.Innovation.objects.filter(status='RESUBMIT').count()
+
+                info = {
+                    "approved": approved,
+                    "dropped": dropped,
+                    "under_review": under_review,
+                    "incomplete": incomplete,
+                    "resubmitted": resubmitted,
+                    "pendind_resubmission": pendind_resubmission,
+                }
+                
+                return Response(info, status=status.HTTP_200_OK)
+            else:
+                return Response([], status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(e)
+            return Response({'details':'Error Fetching Analytics'},status=status.HTTP_400_BAD_REQUEST)
     
 
    
