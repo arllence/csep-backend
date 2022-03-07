@@ -124,9 +124,9 @@ class InnovationViewSet(viewsets.ModelViewSet):
     @action(methods=["GET"], detail=False, url_path="filter-innovations", url_name="filter-innovations")
     def filter_innovations(self, request):
         user = request.user
-        status = request.query_params.get('status')
+        status_value = request.query_params.get('status')
         stage = request.query_params.get('stage')
-        if not status:
+        if not status_value:
             return Response({'details':'Status Required'},status=status.HTTP_400_BAD_REQUEST)
         
         is_chief_evaluator = False
@@ -150,14 +150,14 @@ class InnovationViewSet(viewsets.ModelViewSet):
 
         try:    
             if is_lead_innovation_manager:
-                if status == 'ALL' and stage == 'ALL':
+                if status_value == 'ALL' and stage == 'ALL':
                     innovations = models.Innovation.objects.all()
-                elif status == 'ALL' and stage != 'ALL':
+                elif status_value == 'ALL' and stage != 'ALL':
                     innovations = models.Innovation.objects.filter(stage=stage).order_by('-date_created')
-                elif status != 'ALL' and stage == 'ALL':
-                    innovations = models.Innovation.objects.filter(status=status).order_by('-date_created')
-                elif status != 'ALL' and stage != 'ALL':
-                    innovations = models.Innovation.objects.filter(status=status,stage=stage).order_by('-date_created')
+                elif status_value != 'ALL' and stage == 'ALL':
+                    innovations = models.Innovation.objects.filter(status=status_value).order_by('-date_created')
+                elif status_value != 'ALL' and stage != 'ALL':
+                    innovations = models.Innovation.objects.filter(status=status_value,stage=stage).order_by('-date_created')
 
                 if innovations:
                     innovations = serializers.FullInnovationSerializer(innovations, many=True,context={"user_id":request.user.id}).data
@@ -172,14 +172,14 @@ class InnovationViewSet(viewsets.ModelViewSet):
                    
                 # innovation = models.Innovation.objects.filter(pk__in=innovation_pks, status=status).order_by('-date_created')
 
-                if status == 'ALL' and stage == 'ALL':
+                if status_value == 'ALL' and stage == 'ALL':
                     innovation = models.Innovation.objects.filter(pk__in=innovation_pks).order_by('-date_created')
-                elif status == 'ALL' and stage != 'ALL':
+                elif status_value == 'ALL' and stage != 'ALL':
                     innovation = models.Innovation.objects.filter(pk__in=innovation_pks, stage=stage).order_by('-date_created')
-                elif status != 'ALL' and stage == 'ALL':
-                    innovation = models.Innovation.objects.filter(pk__in=innovation_pks, status=status).order_by('-date_created')
-                elif status != 'ALL' and stage != 'ALL':
-                    innovation = models.Innovation.objects.filter(pk__in=innovation_pks, status=status, stage=stage).order_by('-date_created')
+                elif status_value != 'ALL' and stage == 'ALL':
+                    innovation = models.Innovation.objects.filter(pk__in=innovation_pks, status=status_value).order_by('-date_created')
+                elif status_value != 'ALL' and stage != 'ALL':
+                    innovation = models.Innovation.objects.filter(pk__in=innovation_pks, status=status_value, stage=stage).order_by('-date_created')
                 
                 if innovation:
                     innovations = serializers.FullInnovationSerializer(innovation, many=True, context={"user_id":request.user.id}).data
