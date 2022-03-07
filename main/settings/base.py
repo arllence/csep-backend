@@ -1,5 +1,5 @@
 # import django_heroku
-import os
+import os, date
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -74,17 +74,28 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+loggername = str(date.today())
 LOGGING = {
     'version': 1,
     # The version number of our log
     'disable_existing_loggers': False,
     # django uses some of its own loggers for internal operations. In case you want to disable them just replace the False above with true.
+    'formatters': {
+        'simple': {
+            'format': '[%(asctime)s] %(levelname)s %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S'
+        },
+        'verbose': {
+            'format': '[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S'
+        },
+    },
     # A handler for WARNING. It is basically writing the WARNING messages into a file called WARNING.log
     'handlers': {
         'file': {
             'level': 'WARNING',
             'class': 'logging.FileHandler',
-            'filename': '/opt/logs/warning.log',
+            'filename': '/opt/logs/general/'+loggername+'.log',
         },
     },
     # A logger for WARNING which has a handler called 'file'. A logger can have multiple handler
