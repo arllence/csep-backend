@@ -158,19 +158,8 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 innovations = models.GroupMember.objects.filter(member=user, group__role=role).order_by('-date_created')
                 innovation_pks = []
                 for innovation in innovations:
-                    # innovation_pks.append(innovation.group.innovation.id)
-                    check = True
-                    if role == 'JUNIOR_OFFICER':
-                        check = models.InnovationReview.objects.filter(innovation=innovation.group.innovation.id,reviewer=user).exists()
-                    else:
-                        check = models.Evaluation.objects.filter(innovation=innovation.group.innovation.id,evaluator=user).exists()
-
-                    if not check:
-                        innovation_pks.append(innovation.group.innovation.id)
-
-                    if is_chief_evaluator or is_lead:
-                        innovation_pks.append(innovation.group.innovation.id)
-
+                    innovation_pks.append(innovation.group.innovation.id)
+                   
                 innovation = models.Innovation.objects.filter(pk__in=innovation_pks, status=search_value).order_by('-date_created')
                 
                 if innovation:
