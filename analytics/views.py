@@ -261,6 +261,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
 
         try:    
             if is_lead_innovation_manager:
+                completed = innovation_models.Innovation.objects.filter(status='COMPLETED').count()
                 approved = innovation_models.Innovation.objects.filter(status='APPROVED').count()
                 dropped = innovation_models.Innovation.objects.filter(status='DROPPED').count()
                 under_review = innovation_models.Innovation.objects.filter(status='UNDER_REVIEW').count()
@@ -269,6 +270,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
                 pending_resubmission = innovation_models.Innovation.objects.filter(status='RESUBMIT').count()
 
                 info = {
+                    "completed": completed,
                     "approved": approved,
                     "dropped": dropped,
                     "under_review": under_review,
