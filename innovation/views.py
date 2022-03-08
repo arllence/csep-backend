@@ -1081,6 +1081,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
     def group(self, request):
         authenticated_user = request.user
         payload = request.data
+        print(payload)
 
         serializer = serializers.CreateGroupSerializer(data=payload, many=False)
         if serializer.is_valid():

@@ -71,7 +71,9 @@ def award_role(role,account_id):
         try:
             custom_revoke_role(role,account_id)
         except Exception as e:
+            print(e)
             logger.error(e)
+
         role = "CHIEF_EVALUATOR"
     else:
         role = "LEAD_" + role
@@ -85,10 +87,9 @@ def award_role(role,account_id):
         return False
 
 def revoke_role(role,account_id):
-    if role == "EXTERNAL_EVALUATOR":
-        role = "CHIEF_EVALUATOR"
-    else:
+    if role != "CHIEF_EVALUATOR":
         role = "LEAD_" + role
+        
     try:
         record_instance = get_user_model().objects.get(id=account_id)
         group = Group.objects.get(name=role)  
@@ -96,6 +97,7 @@ def revoke_role(role,account_id):
         return True
     except Exception as e:
         logger.error(e)
+        print(e)
         return False
 
 
