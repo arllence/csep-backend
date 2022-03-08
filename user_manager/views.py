@@ -142,7 +142,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                     print( is_authenticated.last_login)
                 except Exception as e:
                     logger.error(e)
-                    print(e)
+                    # print(e)
                 return Response(response_info, status=status.HTTP_200_OK)
         else:
             return Response({"details": "Invalid Email / Password"}, status=status.HTTP_400_BAD_REQUEST)
