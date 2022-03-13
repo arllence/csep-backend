@@ -1282,11 +1282,11 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     action = "Created"
                     reviewInstance = models.InnovationManagerReview.objects.create(**payload) 
                 
-                # if innovation.stage == "II":
-                #     innovation.stage = "III"
+                if innovation.stage == "II":
+                    innovation.stage = "III"
 
                 innovation.edit = True
-                innovation.stage = "III"
+                # innovation.stage = "III"
                 innovation.status = "RESUBMIT"
                 innovation.save()   
 
