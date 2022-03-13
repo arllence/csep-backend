@@ -115,7 +115,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
         innovators = get_user_model().objects.filter(
             groups__name='INNOVATOR').count()
         evaluators = get_user_model().objects.filter(
-            groups__name='EVALUATOR').count()
+            Q(groups__name='EVALUATOR') |  Q(groups__name='INTERNAL_EVALUATOR') |  Q(groups__name='EXTERNAL_EVALUATOR') | Q(groups__name='SUBJECT_MATTER_EVALUATOR') |  Q(groups__name='CHIEF_EVALUATOR')).count()
         investors = get_user_model().objects.filter(
             groups__name='INVESTOR').count()
         mentors = get_user_model().objects.filter(
