@@ -1189,9 +1189,9 @@ class EvaluationViewSet(viewsets.ModelViewSet):
 
                 check = models.InnovationReview.objects.filter(reviewer=authenticated_user,innovation=innovation)
                 
-                if action == 'PROCEED':
+                if action != 'DROPPED':
                     innovation.stage = "II"
-                elif action == 'DROP':
+                else:
                     innovation.status = 'DROPPED'
                 innovation.save()
 
