@@ -303,8 +303,12 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 payload['innovation'] = innovation
 
                 industry = payload['industry']
-                industry = app_manager_models.Industry.objects.get(id=industry)
-                payload['industry'] = industry
+                try:
+                    industry = app_manager_models.Industry.objects.get(id=industry)
+                    payload['industry'] = industry
+                except Exception as e:
+                    logger.error(e)
+                    return Response({"details": "Select Industry from the list!"}, status=status.HTTP_400_BAD_REQUEST)
 
                 development_stage = payload['development_stage']
                 development_stage = app_manager_models.DevelopmentStage.objects.get(id=development_stage)
