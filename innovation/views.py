@@ -1155,6 +1155,8 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     innovation.stage = 'V'
                 elif role == 'EXTERNAL_EVALUATOR':
                     innovation.stage = 'VI'
+                elif role == 'JUNIOR_OFFICER':
+                    innovation.stage = 'II'
                 innovation.save() 
 
 
