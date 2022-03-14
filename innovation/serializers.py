@@ -207,6 +207,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
     ee_reviews = serializers.SerializerMethodField()
     is_evaluated = serializers.SerializerMethodField()
     date_assigned = serializers.SerializerMethodField()
+    date_evaluated = serializers.SerializerMethodField()
 
     class Meta:
         model = models.Innovation
@@ -387,6 +388,25 @@ class FullInnovationSerializer(serializers.ModelSerializer):
             else:
                 evaluated = models.Evaluation.objects.filter(innovation=obj.id,evaluator=user_id).exists()
             return evaluated
+        except Exception as e:
+            print(e)
+            return False
+
+    def get_date_evaluated(self, obj):
+        try:
+            user_id = None
+            roles = []
+            try:
+                user_id = str(self.context["user_id"])
+                roles = user_util.fetchusergroups(user_id)
+            except Exception as e:
+                print(e)
+            if 'JUNIOR_OFFICER' in roles:
+                evaluated = models.InnovationReview.objects.filter(innovation=obj.id,reviewer=user_id).first().date_created
+            else:
+                evaluated = models.Evaluation.objects.filter(innovation=obj.id,evaluator=user_id).first().date_created
+            return evaluated
+
         except Exception as e:
             print(e)
             return False
