@@ -151,7 +151,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
         try:    
             if is_lead_innovation_manager:
                 if status_value == 'ALL' and stage == 'ALL':
-                    innovations = models.Innovation.objects.all()
+                    innovations = models.Innovation.objects.all().order_by('-date_created')
                 elif status_value == 'ALL' and stage != 'ALL':
                     innovations = models.Innovation.objects.filter(stage=stage).order_by('-date_created')
                 elif status_value != 'ALL' and stage == 'ALL':
