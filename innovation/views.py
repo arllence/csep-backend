@@ -1183,6 +1183,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     payload['innovation'] = innovation
                     payload['reviewer'] = authenticated_user
                     action = payload['action']
+                    is_final = payload['is_final']
                     if 'LEAD_JUNIOR_OFFICER' in roles:
                         payload['is_lead'] = True
                 except Exception as e:
