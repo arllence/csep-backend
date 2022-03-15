@@ -139,7 +139,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                 try:
                     is_authenticated.last_login = datetime.now()
                     is_authenticated.save()
-                    print( is_authenticated.last_login)
+                    # print( is_authenticated.last_login)
                 except Exception as e:
                     logger.error(e)
                     # print(e)

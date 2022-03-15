@@ -405,7 +405,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
                 evaluated = models.InnovationReview.objects.filter(innovation=obj.id,reviewer=user_id)
             else:
                 evaluated = models.Evaluation.objects.filter(innovation=obj.id,evaluator=user_id)
-                
+
             if evaluated:
                 evaluated = evaluated.first().date_created
             else:
@@ -496,6 +496,13 @@ class ReviewSerializer(serializers.ModelSerializer):
     reviewer = UsersSerializer()
     class Meta:
         model = models.InnovationReview
+        fields = '__all__'
+
+class FinalEvaluatorsCommentSerializer(serializers.ModelSerializer):  
+    # innovation = InnovationSerializer()
+    reviewer = UsersSerializer()
+    class Meta:
+        model = models.FinalEvaluatorsComment
         fields = '__all__'
 
 class InnovationManagerReviewSerializer(serializers.ModelSerializer):  

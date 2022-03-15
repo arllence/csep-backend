@@ -1085,7 +1085,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
     def group(self, request):
         authenticated_user = request.user
         payload = request.data
-        print(payload)
+        # print(payload)
 
         serializer = serializers.CreateGroupSerializer(data=payload, many=False)
         if serializer.is_valid():
@@ -1161,6 +1161,8 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     innovation.stage = 'VI'
                 elif role == 'JUNIOR_OFFICER':
                     innovation.stage = 'II'
+                elif role == 'CHIEF_EVALUATOR':
+                    innovation.stage = 'VII'
                 innovation.save() 
 
 
@@ -1218,7 +1220,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
 
                     try:
                         # SEND NOTIFICATION
-                        group = models.Group.objects.filter(innovation=innovation,role="JUNIOR_OFFICER").first()
+                        group = models.Group.objects.filter(innovation=innovation,role="JUNIOR_OFFICER").order_by('-date_created').first()
                         innovation_name = models.InnovationDetails.objects.get(innovation=innovation_id).innovation_name
                         notification = f"Innovation {innovation_name}: has been successfully reviewed by assigned Junior Officer."
 
@@ -1239,6 +1241,82 @@ class EvaluationViewSet(viewsets.ModelViewSet):
 
                 user_util.log_account_activity(
                     authenticated_user, authenticated_user, f"Junior Innovation Review {action}. Id: " + str(reviewInstance.id) , f"Junior Innovation Review")
+                return Response("success", status=status.HTTP_200_OK)
+        else:
+            return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["POST"], detail=False, url_path="create-final-evaluators-comment",url_name="create-final-evaluators-comment")
+    def final_evaluators_comment(self, request):
+        authenticated_user = request.user
+        payload = request.data
+
+        roles = user_util.fetchusergroups(authenticated_user.id)
+
+        serializer = serializers.CreateReviewSerializer(data=payload, many=False)
+        if serializer.is_valid():
+            with transaction.atomic():
+                try:
+                    innovation_id = payload['innovation']
+                    innovation = models.Innovation.objects.get(id=innovation_id)
+
+                    stage = innovation.stage
+                    if stage == 'IV':
+                        role = 'INTERNAL_EVALUATOR'
+                    elif stage == 'V':
+                        role = 'SUBJECT_MATTER_EVALUATOR'
+                    elif stage == 'VI':
+                        role = 'EXTERNAL_EVALUATOR'
+                    elif stage == 'VII':
+                        role = 'CHIEF_EVALUATOR'
+                    else:
+                        role = None
+                        logger.error("Unkwnow Role. Stage = ", stage)
+                        return Response({"details": "Unkwnow Role"}, status=status.HTTP_400_BAD_REQUEST)                    
+                
+
+                    payload['innovation'] = innovation
+                    payload['reviewer'] = authenticated_user
+                    payload['role'] = role
+                    action = payload['action']
+
+                except Exception as e:
+                    logger.error(e)
+                    return Response({"details": "Invalid Innovation"}, status=status.HTTP_400_BAD_REQUEST)  
+
+                check = models.FinalEvaluatorsComment.objects.filter(reviewer=authenticated_user,innovation=innovation)
+                
+                if action == 'DROPPED':
+                    innovation.status = 'DROPPED'
+                innovation.save()
+     
+                if not check:
+                    action = "Final evaluator comment Created by " + role
+                    reviewInstance = models.InnovationReview.objects.create(**payload)   
+
+                    try:
+                        # SEND NOTIFICATION
+                        group = models.Group.objects.filter(innovation=innovation,role=role).order_by('-date_created').first()
+                        innovation_name = models.InnovationDetails.objects.get(innovation=innovation_id).innovation_name
+                        notification = f"Innovation {innovation_name}: has been successfully reviewed by assigned " + role 
+
+                        subject = "Application Reviewed"
+                        first_name = group.creator.first_name
+                        email = group.creator.email
+
+                        message_template = read_template("general.html")
+                        message = message_template.substitute(NAME=first_name,MESSAGE=notification,LINK=settings.FRONTEND)
+
+                        # save notification
+                        models.Notifications.objects.create(innovation=innovation,recipient=group.creator, sender=authenticated_user, notification=notification)
+
+                        # send email
+                        user_util.sendmail(email,subject,message)
+                    except Exception as e:
+                        logger.error(e)       
+
+                user_util.log_account_activity(
+                    authenticated_user, authenticated_user, f"{action}. Id: " + str(reviewInstance.id) , f"Junior Innovation Review")
                 return Response("success", status=status.HTTP_200_OK)
         else:
             return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
@@ -1268,9 +1346,12 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             with transaction.atomic():
                 try:
+                    action = payload['action']
                     innovation_id = payload['innovation']
                     innovation = models.Innovation.objects.get(id=innovation_id)
+
                     del payload['innovation']
+
                     reviewer = authenticated_user
                     review = payload
                     payload = {
@@ -1296,9 +1377,10 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 if innovation.stage == "II":
                     innovation.stage = "III"
 
-                innovation.edit = True
-                # innovation.stage = "III"
-                innovation.status = "RESUBMIT"
+                if action == "RESUBMIT":
+                    innovation.edit = True
+                    innovation.status = "RESUBMIT"
+
                 innovation.save()   
 
                 junior_review = models.InnovationReview.objects.filter(innovation=innovation, status=True)   
@@ -1312,21 +1394,22 @@ class EvaluationViewSet(viewsets.ModelViewSet):
 
                 try:
                     # SEND NOTIFICATION
-                    innovation_name = models.InnovationDetails.objects.get(innovation=innovation.id).innovation_name
-                    notification = f"Following review of your innovation application: {innovation_name}. We request you to Resubmit after making all the necessary changes as advised"
+                    if action == "RESUBMIT":
+                        innovation_name = models.InnovationDetails.objects.get(innovation=innovation.id).innovation_name
+                        notification = f"Following review of your innovation application: {innovation_name}. We request you to Resubmit after making all the necessary changes as advised"
 
-                    subject = "Application Resubmission"
-                    first_name = innovation.creator.first_name
-                    email = innovation.creator.email
+                        subject = "Application Resubmission"
+                        first_name = innovation.creator.first_name
+                        email = innovation.creator.email
 
-                    message_template = read_template("general.html")
-                    message = message_template.substitute(NAME=first_name,MESSAGE=notification,LINK=settings.FRONTEND)
+                        message_template = read_template("general.html")
+                        message = message_template.substitute(NAME=first_name,MESSAGE=notification,LINK=settings.FRONTEND)
 
-                    # save notification
-                    models.Notifications.objects.create(innovation=innovation,recipient=innovation.creator, sender=authenticated_user, notification=notification)
+                        # save notification
+                        models.Notifications.objects.create(innovation=innovation,recipient=innovation.creator, sender=authenticated_user, notification=notification)
 
-                    # send email
-                    user_util.sendmail(email,subject,message)
+                        # send email
+                        user_util.sendmail(email,subject,message)
                 except Exception as e:
                     logger.error(e)
 

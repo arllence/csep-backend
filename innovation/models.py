@@ -366,6 +366,28 @@ class InnovationReview(models.Model): # TODO: Rename this model to JuniorInnovat
         return str(self.id)
 
 
+class FinalEvaluatorsComment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    innovation = models.ForeignKey(
+       Innovation, on_delete=models.CASCADE, related_name="innovation_reviews"
+    )
+    reviewer =models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="comment_creator"
+    )
+    review = models.TextField()
+    action = models.CharField(max_length=255)
+    role = models.CharField(max_length=255, blank=True, null=True)
+    status = models.BooleanField(default=True)
+    is_seen = models.BooleanField(default=False)
+    date_created = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = "final_evaluators_comments"
+
+    def __str__(self):
+        return str(self.id)
+
+
 class InnovationManagerReview(models.Model): 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     innovation = models.ForeignKey(
