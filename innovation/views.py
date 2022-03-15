@@ -1204,10 +1204,14 @@ class EvaluationViewSet(viewsets.ModelViewSet):
 
                 if check:
                     reviewInstance = check.first()
-                    reviewInstance.review = payload['review']
-                    reviewInstance.action = payload['action']
-                    reviewInstance.save()
-                    action = "Updated"
+                    if is_final:
+                        if not reviewInstance.is_final:
+                            action = "JO Final Review Created"
+                            reviewInstance = models.InnovationReview.objects.create(**payload)                    
+                    # reviewInstance.review = payload['review']
+                    # reviewInstance.action = payload['action']
+                    # reviewInstance.save()
+                    # action = "Updated"
                 else:
                     action = "Created"
                     reviewInstance = models.InnovationReview.objects.create(**payload)   
