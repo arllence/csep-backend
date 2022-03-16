@@ -60,7 +60,7 @@ class InnovationDetailsSerializer(serializers.ModelSerializer):
             serializer = app_manager_serializers.IndustrySerializer(industry, many=False)
             return serializer.data
         except(ObjectDoesNotExist):
-            pass
+            return []
         except Exception as e:
             print(e)
             return []
@@ -71,7 +71,7 @@ class InnovationDetailsSerializer(serializers.ModelSerializer):
             serializer = app_manager_serializers.IntellectualPropertySerializer(ip, many=False)
             return serializer.data
         except(ObjectDoesNotExist):
-            pass
+            return []
         except Exception as e:
             print(e)
             return []
@@ -82,7 +82,7 @@ class InnovationDetailsSerializer(serializers.ModelSerializer):
             serializer = InnovationDocumentSerializer(ipdoc, many=True)
             return serializer.data
         except(ObjectDoesNotExist):
-            pass
+            return []
         except Exception as e:
             print(e)
             return []
@@ -93,7 +93,7 @@ class InnovationDetailsSerializer(serializers.ModelSerializer):
             serializer = app_manager_serializers.DevelopmentStageSerializer(development_stage, many=False)
             return serializer.data
         except(ObjectDoesNotExist):
-            pass
+            return []
         except Exception as e:
             print(e)
             return []
@@ -140,7 +140,7 @@ class InnovationSerializer(serializers.ModelSerializer):
             serializer = InnovationDetailsSerializer(details, many=False)
             return serializer.data
         except(ObjectDoesNotExist):
-            pass
+            return []
         except:
             return []
 
@@ -150,7 +150,7 @@ class InnovationSerializer(serializers.ModelSerializer):
             serializer = InnovationManagerReviewSerializer(details, many=False)
             return serializer.data
         except(ObjectDoesNotExist):
-            pass
+            return []
         except:
             return []
 
@@ -234,7 +234,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
             serializer = InnovationDetailsSerializer(details, many=False)
             return serializer.data
         except(ObjectDoesNotExist):
-            pass
+            return []
         except Exception as e:
             print(e)
             return []
@@ -245,7 +245,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
             serializer = InnovationInformationSerializer(information, many=False)
             return serializer.data
         except(ObjectDoesNotExist):
-            pass
+            return []
         except Exception as e:
             print(e)
             return []
@@ -261,7 +261,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
             serializer = InnovationSocialLinksSerializer(social_links, many=False)
             return serializer.data
         except(ObjectDoesNotExist):
-            pass
+            return []
         except Exception as e:
             print(e)
             return []
@@ -293,7 +293,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
             }
             return date_assigned
         except(ObjectDoesNotExist):
-            pass
+            return []
         except Exception as e:
             print(e)
             return []
@@ -304,7 +304,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
             serializer = GroupSerializer(group, many=False)
             return serializer.data
         except(ObjectDoesNotExist):
-            pass
+            return []
         except Exception as e:
             print(e)
             return []
@@ -315,7 +315,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
             serializer = GroupSerializer(group, many=False)
             return serializer.data
         except(ObjectDoesNotExist):
-            pass
+            return []
         except Exception as e:
             print(e)
             return []
@@ -326,7 +326,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
             serializer = GroupSerializer(group, many=False)
             return serializer.data
         except(ObjectDoesNotExist):
-            pass
+            return []
         except Exception as e:
             print(e)
             return []
@@ -337,7 +337,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
             serializer = GroupSerializer(group, many=False)
             return serializer.data
         except(ObjectDoesNotExist):
-            pass
+            return []
         except Exception as e:
             print(e)
             return []
@@ -348,7 +348,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
             serializer = GroupSerializer(group, many=False)
             return serializer.data
         except(ObjectDoesNotExist):
-            pass
+            return []
         except Exception as e:
             print(e)
             return []
@@ -388,7 +388,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
             serializer = InnovationManagerReviewSerializer(details, many=False)
             return serializer.data
         except(ObjectDoesNotExist):
-            pass
+            return []
         except Exception as e:
             print(e)
             return []
@@ -399,7 +399,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
             serializer = ReviewSerializer(details, many=False)
             return serializer.data
         except(ObjectDoesNotExist):
-            pass
+            return []
         except Exception as e:
             print(e)
             return []
