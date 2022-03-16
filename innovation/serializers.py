@@ -118,7 +118,7 @@ class InnovationDetailsSerializer(serializers.ModelSerializer):
 
     def get_awards(self, obj):
         try:
-            print(obj.innovation_id)
+            # print(obj.innovation_id)
             awards = models.Awards.objects.filter(innovation=obj.innovation_id)
             serializer = GenericNameSerializer(awards, many=True)
             return serializer.data
@@ -439,7 +439,9 @@ class FullInnovationSerializer(serializers.ModelSerializer):
                 user_id = str(self.context["user_id"])
                 roles = user_util.fetchusergroups(user_id)
             except Exception as e:
-                print(e)
+                # print(e)
+                pass
+
             if 'JUNIOR_OFFICER' in roles:
                 evaluated = models.InnovationReview.objects.filter(innovation=obj.id,reviewer=user_id).exists()
             else:
