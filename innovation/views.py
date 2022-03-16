@@ -1293,7 +1293,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
      
                 if not check:
                     action = "Final evaluator comment Created by " + role
-                    reviewInstance = models.InnovationReview.objects.create(**payload)   
+                    reviewInstance = models.FinalEvaluatorsComment.objects.create(**payload)   
 
                     try:
                         # SEND NOTIFICATION
