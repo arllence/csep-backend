@@ -1279,6 +1279,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     payload['reviewer'] = authenticated_user
                     payload['stage'] = stage
                     action = payload['action']
+                    del payload['is_final']
 
                 except Exception as e:
                     logger.error(e)
