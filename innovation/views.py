@@ -1243,7 +1243,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                         # SEND NOTIFICATION
                         group = models.Group.objects.filter(innovation=innovation,role="JUNIOR_OFFICER").order_by('-date_created').first()
                         innovation_name = models.InnovationDetails.objects.get(innovation=innovation_id).innovation_name
-                        notification = f"Innovation {innovation_name}: has been successfully reviewed by assigned Junior Officer."
+                        notification = f"Innovation {innovation_name}: has been successfully reviewed by assigned Junior Officer {authenticated_user.first_name} {authenticated_user.last_name}"
 
                         subject = "Application Reviewed"
                         first_name = group.creator.first_name
@@ -1320,7 +1320,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                         # SEND NOTIFICATION
                         group = models.Group.objects.filter(innovation=innovation,stage=stage).order_by('-date_created').first()
                         innovation_name = models.InnovationDetails.objects.get(innovation=innovation_id).innovation_name
-                        notification = f"Innovation {innovation_name}: has been successfully reviewed by assigned " + role 
+                        notification = f"Innovation {innovation_name}: has been successfully reviewed by assigned  {role} {authenticated_user.first_name} {authenticated_user.last_name}"
 
                         subject = "Application Reviewed"
                         first_name = group.creator.first_name
