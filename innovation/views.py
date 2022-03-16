@@ -1277,7 +1277,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
 
                     payload['innovation'] = innovation
                     payload['reviewer'] = authenticated_user
-                    payload['role'] = role
+                    payload['stage'] = stage
                     action = payload['action']
 
                 except Exception as e:
@@ -1296,7 +1296,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
 
                     try:
                         # SEND NOTIFICATION
-                        group = models.Group.objects.filter(innovation=innovation,role=role).order_by('-date_created').first()
+                        group = models.Group.objects.filter(innovation=innovation,stage=stage).order_by('-date_created').first()
                         innovation_name = models.InnovationDetails.objects.get(innovation=innovation_id).innovation_name
                         notification = f"Innovation {innovation_name}: has been successfully reviewed by assigned " + role 
 

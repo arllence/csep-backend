@@ -200,6 +200,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
     sme_group = serializers.SerializerMethodField(read_only=True)
     ee_group = serializers.SerializerMethodField(read_only=True)
     review = serializers.SerializerMethodField(read_only=True)
+    evaluator_comments = serializers.SerializerMethodField(read_only=True)
     im_reviews = serializers.SerializerMethodField()
     fim_reviews = serializers.SerializerMethodField()
     ie_reviews = serializers.SerializerMethodField()
@@ -329,6 +330,26 @@ class FullInnovationSerializer(serializers.ModelSerializer):
         except Exception as e:
             print(e)
             return []
+
+    def get_evaluator_comments(self, obj):
+        try:
+            current_lead = models.FinalEvaluatorsComment.objects.filter(innovation=obj.id,stage=obj.stage)
+            serializer = FinalEvaluatorsCommentSerializer(current_lead, many=True)
+            current_lead = serializer.data
+
+            general = models.FinalEvaluatorsComment.objects.filter(innovation=obj.id)
+            serializer = FinalEvaluatorsCommentSerializer(general, many=True)
+            general = serializer.data
+
+            info = {
+                "current_lead" : current_lead,
+                "general" : general,
+            }
+            return info
+        except Exception as e:
+            print(e)
+            return []
+
     
     def get_im_reviews(self, obj):
         try:

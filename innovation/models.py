@@ -376,7 +376,7 @@ class FinalEvaluatorsComment(models.Model):
     )
     review = models.TextField()
     action = models.CharField(max_length=255)
-    role = models.CharField(max_length=255, blank=True, null=True)
+    stage = models.CharField(max_length=50, blank=True, null=True)
     status = models.BooleanField(default=True)
     is_seen = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True)
