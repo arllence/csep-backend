@@ -441,6 +441,7 @@ class Notifications(models.Model):
         User, on_delete=models.CASCADE, related_name="notification_receipient", null=True, blank=True
     )
     notification = models.TextField()
+    subject = models.CharField(max_length=255,null=True, blank=True)
     status = models.BooleanField(default=True)
     is_seen = models.BooleanField(default=False)
     date_sent = models.DateTimeField(null=True, blank=True)

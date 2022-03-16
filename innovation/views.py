@@ -719,7 +719,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
                     body = message_template.substitute(NAME=recipient,MESSAGE=message,LINK=settings.FRONTEND)
 
                     # save notification
-                    models.Notifications.objects.create(innovation=innovation,sender=authenticated_user,recipient=check.reviewer, notification=message)
+                    models.Notifications.objects.create(innovation=innovation,subject=subject,sender=authenticated_user,recipient=check.reviewer, notification=message)
 
                     # send email
                     user_util.sendmail(email,subject,body)
@@ -802,6 +802,27 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     innovation.status = "UNDER_REVIEW"
                     innovation.save()
                     action = "Created"
+                
+                try:
+                    # SEND NOTIFICATION
+                    group = models.Group.objects.filter(innovation=innovation,role=role).order_by('-date_created').first()
+                    innovation_name = models.InnovationDetails.objects.get(innovation=innovation_id).innovation_name
+                    notification = f"Innovation {innovation_name}: has been successfully reviewed by assigned {role} {authenticated_user.first_name} {authenticated_user.first_name}"
+
+                    subject = "Application Reviewed"
+                    first_name = group.creator.first_name
+                    email = group.creator.email
+
+                    message_template = read_template("general.html")
+                    message = message_template.substitute(NAME=first_name,MESSAGE=notification,LINK=settings.FRONTEND)
+
+                    # save notification
+                    models.Notifications.objects.create(innovation=innovation,subject=subject,recipient=group.creator, sender=authenticated_user, notification=notification)
+
+                    # send email
+                    user_util.sendmail(email,subject,message)
+                except Exception as e:
+                    logger.error(e)  
                
                 user_util.log_account_activity(
                     authenticated_user, authenticated_user, f"Evaluation {action}. Id: " + str(innovation_id) , f"Evaluation {action} Executed")
@@ -1132,7 +1153,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                         body = message_template.substitute(NAME=member.first_name,MESSAGE=message,LINK=settings.FRONTEND)
 
                         # save notification
-                        models.Notifications.objects.create(innovation=innovation,sender=authenticated_user,recipient=member, notification=message)
+                        models.Notifications.objects.create(innovation=innovation,subject=subject,sender=authenticated_user,recipient=member, notification=message)
 
                         # send email
                         user_util.sendmail(email,subject,body)
@@ -1232,7 +1253,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                         message = message_template.substitute(NAME=first_name,MESSAGE=notification,LINK=settings.FRONTEND)
 
                         # save notification
-                        models.Notifications.objects.create(innovation=innovation,recipient=group.creator, sender=authenticated_user, notification=notification)
+                        models.Notifications.objects.create(innovation=innovation,subject=subject,recipient=group.creator, sender=authenticated_user, notification=notification)
 
                         # send email
                         user_util.sendmail(email,subject,message)
@@ -1309,7 +1330,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                         message = message_template.substitute(NAME=first_name,MESSAGE=notification,LINK=settings.FRONTEND)
 
                         # save notification
-                        models.Notifications.objects.create(innovation=innovation,recipient=group.creator, sender=authenticated_user, notification=notification)
+                        models.Notifications.objects.create(innovation=innovation,subject=subject,recipient=group.creator, sender=authenticated_user, notification=notification)
 
                         # send email
                         user_util.sendmail(email,subject,message)
@@ -1407,7 +1428,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                         message = message_template.substitute(NAME=first_name,MESSAGE=notification,LINK=settings.FRONTEND)
 
                         # save notification
-                        models.Notifications.objects.create(innovation=innovation,recipient=innovation.creator, sender=authenticated_user, notification=notification)
+                        models.Notifications.objects.create(innovation=innovation,subject=subject,recipient=innovation.creator, sender=authenticated_user, notification=notification)
 
                         # send email
                         user_util.sendmail(email,subject,message)
@@ -1508,7 +1529,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                         body = message_template.substitute(NAME=recipient,MESSAGE=message,LINK=settings.FRONTEND)
 
                         # save notification
-                        models.Notifications.objects.create(innovation=innovation,recipient=innovation.creator,sender=authenticated_user, notification=message)
+                        models.Notifications.objects.create(innovation=innovation,subject=subject,recipient=innovation.creator,sender=authenticated_user, notification=message)
 
                         # send email
                         user_util.sendmail(email,subject,body)
