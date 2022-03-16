@@ -459,7 +459,9 @@ class FullInnovationSerializer(serializers.ModelSerializer):
                 user_id = str(self.context["user_id"])
                 roles = user_util.fetchusergroups(user_id)
             except Exception as e:
-                print(e)
+                # print(e)
+                pass
+
             if 'JUNIOR_OFFICER' in roles:
                 evaluated = models.InnovationReview.objects.filter(innovation=obj.id,reviewer=user_id)
             else:
