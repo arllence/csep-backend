@@ -251,7 +251,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
             return []
 
     def get_support_services(self, obj):
-        support_services = models.InnovationSupportService.objects.filter(innovation=obj)
+        support_services = models.InnovationSupportService.objects.filter(innovation=obj).order_by('service')
         serializer = InnovationSupportServiceSerializer(support_services, many=True)
         return serializer.data
 
@@ -355,7 +355,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
 
     def get_review(self, obj):
         try:
-            group = models.InnovationReview.objects.filter(innovation=obj.id)
+            group = models.InnovationReview.objects.filter(innovation=obj.id).order_by('-date_created')
             serializer = ReviewSerializer(group, many=True)
             return serializer.data
         except Exception as e:
@@ -364,11 +364,11 @@ class FullInnovationSerializer(serializers.ModelSerializer):
 
     def get_evaluator_comments(self, obj):
         try:
-            current_lead = models.FinalEvaluatorsComment.objects.filter(innovation=obj.id,stage=obj.stage)
+            current_lead = models.FinalEvaluatorsComment.objects.filter(innovation=obj.id,stage=obj.stage).order_by('-date_created')
             serializer = FinalEvaluatorsCommentSerializer(current_lead, many=True)
             current_lead = serializer.data
 
-            general = models.FinalEvaluatorsComment.objects.filter(innovation=obj.id)
+            general = models.FinalEvaluatorsComment.objects.filter(innovation=obj.id).order_by('-date_created')
             serializer = FinalEvaluatorsCommentSerializer(general, many=True)
             general = serializer.data
 
@@ -395,8 +395,8 @@ class FullInnovationSerializer(serializers.ModelSerializer):
 
     def get_fim_reviews(self, obj):
         try:
-            details = models.FinalInnovationManagerReview.objects.get(innovation=obj.id, status=True)
-            serializer = ReviewSerializer(details, many=False)
+            details = models.FinalInnovationManagerReview.objects.filter(innovation=obj.id, status=True).order_by('-date_created')
+            serializer = ReviewSerializer(details, many=True)
             return serializer.data
         except(ObjectDoesNotExist):
             return []
@@ -406,7 +406,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
     
     def get_ie_reviews(self, obj):
         try:
-            details = models.Evaluation.objects.filter(innovation=obj.id,role='INTERNAL_EVALUATOR')
+            details = models.Evaluation.objects.filter(innovation=obj.id,role='INTERNAL_EVALUATOR').order_by('-date_created')
             serializer = CreateEvaluationSerializer(details, many=True)
             return serializer.data
         except Exception as e:
@@ -415,7 +415,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
     
     def get_sme_reviews(self, obj):
         try:
-            details = models.Evaluation.objects.filter(innovation=obj.id,role='SUBJECT_MATTER_EVALUATOR')
+            details = models.Evaluation.objects.filter(innovation=obj.id,role='SUBJECT_MATTER_EVALUATOR').order_by('-date_created')
             serializer = CreateEvaluationSerializer(details, many=True)
             return serializer.data
         except Exception as e:
@@ -424,7 +424,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
     
     def get_ee_reviews(self, obj):
         try:
-            details = models.Evaluation.objects.filter(innovation=obj.id,role='EXTERNAL_EVALUATOR')
+            details = models.Evaluation.objects.filter(innovation=obj.id,role='EXTERNAL_EVALUATOR').order_by('-date_created')
             serializer = CreateEvaluationSerializer(details, many=True)
             return serializer.data
         except Exception as e:

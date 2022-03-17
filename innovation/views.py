@@ -709,7 +709,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 try:
                     # SEND NOTIFICATION
                     innovation_name = models.InnovationDetails.objects.get(innovation=innovation).innovation_name.upper()
-                    check = models.FinalInnovationManagerReview.objects.filter(innovation=innovation, status=True).order_by('-date_created').first()
+                    check = models.FinalInnovationManagerReview.objects.filter(innovation=innovation).order_by('-date_created').first()
                     message = f"Innovation: {innovation_name} has been Resubmmited for review"
                     recipient = check.reviewer.first_name
                     subject = "Innovation Application Resubmission"
@@ -1120,45 +1120,52 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     assignees = payload['assignees']
                     lead = payload['lead']
                     role = payload['role']
+                    reassign = payload['reassign']
                     del payload['assignees']
                     del payload['lead']
+                    del payload['reassign']
                 except Exception as e:
                     logger.error(e)
                     return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)   
 
                 group_exists = models.Group.objects.filter(innovation=innovation, status=True)
-                if group_exists:
-                    for group in group_exists:
-                        group.status = False
-                        group.save()    
+                if not reassign:
+                    if group_exists:                    
+                        for group in group_exists:
+                            group.status = False
+                            group.save()    
 
-                groupinstance = models.Group.objects.create(**payload)
+                    groupinstance = models.Group.objects.create(**payload)
+                else:
+                    groupinstance = group_exists.first()
                 
                 for assignee in assignees:
-                    user_util.revoke_role(role,assignee)
                     member = get_user_model().objects.get(id=assignee)
-                    if assignee == lead:
-                        models.GroupMember.objects.create(group=groupinstance,member=member,is_lead=True)
-                        message = f"You have been assigned a team of evaluators for innovation: {innovation_name} as {role}"
-                    else:
-                        models.GroupMember.objects.create(group=groupinstance,member=member)
-                        message = f"You have been assigned an evaluation role for innovation: {innovation_name} as {role}"
+                    is_existing =  models.GroupMember.objects.filter(group=groupinstance,member=member).exists()
+                    if not is_existing:
+                        user_util.revoke_role(role,assignee)
+                        if assignee == lead:
+                            models.GroupMember.objects.create(group=groupinstance,member=member,is_lead=True)
+                            message = f"You have been assigned a team of evaluators for innovation: {innovation_name} as {role}"
+                        else:
+                            models.GroupMember.objects.create(group=groupinstance,member=member)
+                            message = f"You have been assigned an evaluation role for innovation: {innovation_name} as {role}"
 
-                    try:
-                        # SEND NOTIFICATION
-                        subject = "Assigned Evaluation Role"
-                        email = member.email
+                        try:
+                            # SEND NOTIFICATION
+                            subject = "Assigned Evaluation Role"
+                            email = member.email
 
-                        message_template = read_template("general.html")
-                        body = message_template.substitute(NAME=member.first_name,MESSAGE=message,LINK=settings.FRONTEND)
+                            message_template = read_template("general.html")
+                            body = message_template.substitute(NAME=member.first_name,MESSAGE=message,LINK=settings.FRONTEND)
 
-                        # save notification
-                        models.Notifications.objects.create(innovation=innovation,subject=subject,sender=authenticated_user,recipient=member, notification=message)
+                            # save notification
+                            models.Notifications.objects.create(innovation=innovation,subject=subject,sender=authenticated_user,recipient=member, notification=message)
 
-                        # send email
-                        user_util.sendmail(email,subject,body)
-                    except Exception as e:
-                        logger.error(e)
+                            # send email
+                            user_util.sendmail(email,subject,body)
+                        except Exception as e:
+                            logger.error(e)
 
                 assign_role = user_util.award_role(role,lead)
 
@@ -1310,6 +1317,8 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 
                 if action == 'DROPPED':
                     innovation.status = 'DROPPED'
+                else:
+                    innovation.status = 'EVALUATED'
                 innovation.save()
      
                 if not check:
@@ -1368,7 +1377,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             with transaction.atomic():
                 try:
-                    action = payload['action']
+                    action_status = payload['action']
                     innovation_id = payload['innovation']
                     innovation = models.Innovation.objects.get(id=innovation_id)
 
@@ -1399,7 +1408,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 if innovation.stage == "II":
                     innovation.stage = "III"
 
-                if action == "RESUBMIT":
+                if action_status == "RESUBMIT":
                     innovation.edit = True
                     innovation.status = "RESUBMIT"
 
@@ -1416,7 +1425,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
 
                 try:
                     # SEND NOTIFICATION
-                    if action == "RESUBMIT":
+                    if action_status == "RESUBMIT":
                         innovation_name = models.InnovationDetails.objects.get(innovation=innovation.id).innovation_name
                         notification = f"Following review of your innovation application: {innovation_name}. We request you to Resubmit after making all the necessary changes as advised"
 

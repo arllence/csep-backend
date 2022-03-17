@@ -268,9 +268,11 @@ class AnalyticsViewSet(viewsets.ViewSet):
                 incomplete = innovation_models.Innovation.objects.filter(status='ONGOING').count()
                 resubmitted = innovation_models.Innovation.objects.filter(status='RESUBMITTED').count()
                 pending_resubmission = innovation_models.Innovation.objects.filter(status='RESUBMIT').count()
+                evaluated = innovation_models.Innovation.objects.filter(status='EVALUATED').count()
 
                 info = {
                     "completed": completed,
+                    "evaluated": evaluated,
                     "approved": approved,
                     "dropped": dropped,
                     "under_review": under_review,
