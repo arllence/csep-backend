@@ -1170,7 +1170,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
 
 
     @action(methods=["GET"], detail=False, url_path="re-fetch-roles", url_name="re-fetch-roles")
-    def fetch_roles(self, request):
+    def refetch_roles(self, request):
         stage = request.query_params.get('role')
 
         if stage == 'I' or stage == 'II':
