@@ -1155,9 +1155,39 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
             role_name = 'SUBJECT_MATTER_EVALUATOR'
         elif stage == 'V':
             role_name = 'EXTERNAL_EVALUATOR'
+        elif stage == 'VI':
+            role_name = 'CHIEF_EVALUATOR'
+        else:
+            return Response({"details": "Unknown Role"}, status=status.HTTP_400_BAD_REQUEST)
 
         if stage == 'all':
-            role = Group.objects.filter(Q(name='SUBJECT_MATTER_EVALUATOR') | Q(name='EXTERNAL_EVALUATOR'))
+            role = Group.objects.filter(Q(name='SUBJECT_MATTER_EVALUATOR') | Q(name='EXTERNAL_EVALUATOR') | Q(name='CHIEF_EVALUATOR'))
+        else:
+            role = Group.objects.filter(name=role_name)
+
+        record_info = serializers.RoleSerializer(role, many=True)
+        return Response(record_info.data, status=status.HTTP_200_OK)
+
+
+    @action(methods=["GET"], detail=False, url_path="re-fetch-roles", url_name="re-fetch-roles")
+    def fetch_roles(self, request):
+        stage = request.query_params.get('role')
+
+        if stage == 'I' or stage == 'II':
+            role_name = 'JUNIOR_OFFICER'
+        elif stage == 'IV':
+            role_name = 'INTERNAL_EVALUATOR'
+        elif stage == 'V':
+            role_name = 'SUBJECT_MATTER_EVALUATOR'
+        elif stage == 'VI':
+            role_name = 'EXTERNAL_EVALUATOR'
+        elif stage == 'VII':
+            role_name = 'CHIEF_EVALUATOR'
+        else:
+            return Response({"details": "Unknown Role"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if stage == 'all':
+            role = Group.objects.filter(Q(name='SUBJECT_MATTER_EVALUATOR') | Q(name='EXTERNAL_EVALUATOR') | Q(name='CHIEF_EVALUATOR'))
         else:
             role = Group.objects.filter(name=role_name)
 
