@@ -735,6 +735,30 @@ class InnovationViewSet(viewsets.ModelViewSet):
             return Response("success", status=status.HTTP_200_OK)
 
 
+    @action(methods=["POST"], detail=False, url_path="innovator-has-read-reviews",url_name="innovator-has-read-reviews")
+    def innovator_has_read_reviews(self, request):
+        authenticated_user = request.user
+        payload = request.data
+
+        with transaction.atomic():
+            try:
+                innovation_id = payload['innovation_id']
+            except:
+                return Response({'details':'Invalid Innovation'},status=status.HTTP_400_BAD_REQUEST)            
+            
+            try:
+                innovation = models.Innovation.objects.get(id=innovation_id)
+                im_review = models.InnovationManagerReview.objects.get(innovation=innovation,status=True)
+                im_review.status = False
+                im_review.save()
+            except Exception as e:
+                logger.error(e)
+            
+            user_util.log_account_activity(
+                authenticated_user, authenticated_user, f"Innovator has reviewed IM reviews", "Id "  + str(innovation_id))
+            return Response("success", status=status.HTTP_200_OK)
+
+
     @action(methods=["GET"], detail=False, url_path="innovation-review", url_name="innovation-review")
     def innovation_review(self, request):
         innovation_id = request.query_params.get('innovation_id')
@@ -1189,6 +1213,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     innovation.stage = 'VI'
                 elif role == 'JUNIOR_OFFICER':
                     innovation.stage = 'II'
+                    innovation.status = 'UNDER_REVIEW'
                 elif role == 'CHIEF_EVALUATOR':
                     innovation.stage = 'VII'
                 innovation.save() 

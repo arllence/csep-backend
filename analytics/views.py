@@ -111,7 +111,9 @@ class AnalyticsViewSet(viewsets.ViewSet):
         url_name="general-counts",
     )
     def general_count(self, request):
+        authenticated_user = request.user
         innovations = innovation_models.Innovation.objects.all().count()
+        my_innovations = innovation_models.Innovation.objects.filter(creator=authenticated_user).count()
         innovators = get_user_model().objects.filter(
             groups__name='INNOVATOR').count()
         evaluators = get_user_model().objects.filter(
@@ -135,6 +137,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
             {"data": [partners],"label":"Partners"},
         ]
         info = {
+            "my_innovations" : my_innovations,
             "innovations" : innovations,
             "innovators" : innovators,
             "evaluators" : evaluators,

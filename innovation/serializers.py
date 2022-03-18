@@ -215,6 +215,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
     review = serializers.SerializerMethodField(read_only=True)
     evaluator_comments = serializers.SerializerMethodField(read_only=True)
     im_reviews = serializers.SerializerMethodField()
+    all_im_reviews = serializers.SerializerMethodField()
     fim_reviews = serializers.SerializerMethodField()
     ie_reviews = serializers.SerializerMethodField()
     sme_reviews = serializers.SerializerMethodField()
@@ -386,6 +387,17 @@ class FullInnovationSerializer(serializers.ModelSerializer):
         try:
             details = models.InnovationManagerReview.objects.get(innovation=obj.id,status=True)
             serializer = InnovationManagerReviewSerializer(details, many=False)
+            return serializer.data
+        except(ObjectDoesNotExist):
+            return []
+        except Exception as e:
+            print(e)
+            return []
+
+    def get_all_im_reviews(self, obj):
+        try:
+            details = models.InnovationManagerReview.objects.filter(innovation=obj.id)
+            serializer = InnovationManagerReviewSerializer(details, many=True)
             return serializer.data
         except(ObjectDoesNotExist):
             return []
