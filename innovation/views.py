@@ -142,7 +142,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
                     role = item
                 else:
                     is_chief_evaluator = True
-                    role = 'EXTERNAL_EVALUATOR'
+                    role = 'CHIEF_EVALUATOR'
             else:
                 is_lead = True
                 if item == 'LEAD_INNOVATION_MANAGER':
@@ -210,27 +210,47 @@ class InnovationViewSet(viewsets.ModelViewSet):
                         role = item
                     else:
                         is_chief_evaluator = True
-                        role = 'EXTERNAL_EVALUATOR'
+                        role = 'CHIEF_EVALUATOR'
                 else:
                     # if item != 'LEAD_JUNIOR_OFFICER':
                     is_lead = True
+            print(role)
 
 
             innovations = models.GroupMember.objects.filter(member=user, group__role=role).order_by('-date_created')
             # innovations = models.GroupMember.objects.filter(member=user)
             for innovation in innovations:
                 # innovation_pks.append(innovation.group.innovation.id)
+                stage = innovation.group.innovation.stage
                 check = True
                 if role == 'JUNIOR_OFFICER':
-                    check = models.InnovationReview.objects.filter(innovation=innovation.group.innovation.id,reviewer=user).exists()
+                    stages = ['I','II']
+                    check = models.InnovationReview.objects.filter(innovation=innovation.group.innovation.id,reviewer=user)
+                    if is_lead:
+                        if stage in stages:
+                            check_is_final = models.InnovationReview.objects.filter(innovation=innovation.group.innovation.id,is_final=True).exists()
+                            if not check_is_final:
+                                innovation_pks.append(innovation.group.innovation.id)
+                        else:
+                            is_lead = False
+                elif role == 'CHIEF_EVALUATOR':
+                    check = models.FinalEvaluatorsComment.objects.filter(innovation=innovation.group.innovation.id,stage=innovation.group.innovation.stage).exists()
                 else:
                     check = models.Evaluation.objects.filter(innovation=innovation.group.innovation.id,evaluator=user).exists()
+                    if is_lead:
+                        if role == 'INTERNAL_EVALUATOR':
+                            check_is_final = models.FinalEvaluatorsComment.objects.filter(innovation=innovation.group.innovation.id,stage='VI').exists()
+                        else:
+                            check_is_final = models.FinalEvaluatorsComment.objects.filter(innovation=innovation.group.innovation.id,stage=innovation.group.innovation.stage).exists()
+
+                        if not check_is_final:
+                            innovation_pks.append(innovation.group.innovation.id)
 
                 if not check:
                     innovation_pks.append(innovation.group.innovation.id)
 
-                if is_chief_evaluator or is_lead:
-                    innovation_pks.append(innovation.group.innovation.id)
+                # if is_chief_evaluator:
+                #     innovation_pks.append(innovation.group.innovation.id)
 
             innovation = models.Innovation.objects.filter(pk__in=innovation_pks).exclude(status__in=('DROPED','DROPPED','ONGOING')).order_by('-date_created')
             
@@ -1193,10 +1213,8 @@ class EvaluationViewSet(viewsets.ModelViewSet):
 
                 assign_role = user_util.award_role(role,lead)
 
-                # if assign_role:
-                #     print("Role Award Successful")
-                # else:
-                #     print("Role Award UnSuccessful")
+                if not assign_role:
+                    return Response({"details": "Role Assigning Failed"}, status=status.HTTP_400_BAD_REQUEST)
 
                 assignees = ", ".join(assignees)   
 

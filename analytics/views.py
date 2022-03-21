@@ -204,7 +204,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
     )
     def junior_count(self, request):
         user = request.user
-        role = 'JUNIOR_OFFICER'
+        # role = 'JUNIOR_OFFICER'
 
         role = None
         roles = user_util.fetchusergroups(user.id)
@@ -215,7 +215,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
                     role = item
                 else:
                     is_chief_evaluator = True
-                    role = 'EXTERNAL_EVALUATOR'
+                    role = 'CHIEF_EVALUATOR'
             else:
                 # if item != 'LEAD_JUNIOR_OFFICER':
                 is_lead = True
@@ -228,8 +228,11 @@ class AnalyticsViewSet(viewsets.ViewSet):
         pending = 0
 
         for innovation in innovations:
+            print(innovation.group.innovation.id)
             if role == 'JUNIOR_OFFICER':
                 check = innovation_models.InnovationReview.objects.filter(innovation=innovation.group.innovation.id,reviewer=user).exists()
+            elif role == 'CHIEF_EVALUATOR':
+                check = innovation_models.FinalEvaluatorsComment.objects.filter(innovation=innovation.group.innovation.id,reviewer=user,stage=innovation.group.innovation.stage).exists()
             else:
                 check = innovation_models.Evaluation.objects.filter(innovation=innovation.group.innovation.id,evaluator=user).exists()
             
