@@ -78,6 +78,19 @@ class InnovationDetails(models.Model):
     def __str__(self):
         return str(self.innovation_name)
 
+class PendingFinalReport(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    innovation = models.ForeignKey(
+       Innovation, on_delete=models.CASCADE, related_name="innovation_pending_final_report"
+    )
+    status = models.BooleanField(default=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        app_label = "innovation"
+        db_table = "pending_final_report"
+
+    def __str__(self):
+        return str(self.innovation.id)
 
 class AccreditationBody(models.Model):
     innovation = models.ForeignKey(

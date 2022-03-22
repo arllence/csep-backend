@@ -1429,13 +1429,16 @@ class SuperUserViewSet(viewsets.ModelViewSet):
                 first_name = payload['first_name']
                 last_name = payload['last_name']
                 register_as = payload['role_name']
-                userexists = get_user_model().objects.filter(email=email).exists()                
+                userexists = get_user_model().objects.filter(email=email).exists()   
+
+                evaluators = ['SUBJECT_MATTER_EVALUATOR','EXTERNAL_EVALUATOR']             
 
                 if userexists:
                     return Response({'details': 'User With Credentials Already Exist'}, status=status.HTTP_400_BAD_REQUEST)
                 
                 try:
                     group_details = Group.objects.get(id=register_as)
+                    role = group_details.name
                 except (ValidationError, ObjectDoesNotExist):
                     return Response({'details': 'Role does not exist'}, status=status.HTTP_400_BAD_REQUEST)
                 
@@ -1458,6 +1461,24 @@ class SuperUserViewSet(viewsets.ModelViewSet):
                 }
                 create_user = get_user_model().objects.create(**newuser)
                 group_details.user_set.add(create_user)
+
+                if role in evaluators:
+                    role = role.split('_')
+                    role = " ".join(role)
+                    raw_msg = f"Thank you for accepting our invitation to be on our panel of {role}S.  Please click <a href='www.ienafrica.org'>www.ienafrica.org</a> to learn more about us.<br><br>\
+                    The evaluation process has been digitized for your convenience. Please click on <a href='https://portal-ienafrica.org'>www.portal-ienafrica.org</a> to log in and view the list of innovation  startups assigned to you.<br><br>\
+                    Our Innovations Manager will contact you shortly to schedule a training session to orient you to the evaluation platform and provide more details.<br><br>\
+                    <b><u>For more information and support please drop us an email innovation@ienafrica.org</u></b>"
+
+                    recipient = first_name
+                    subject = "Welcome To IEN-AFRICA"
+                    email = email
+
+                    message_template = read_template("general.html")
+                    body = message_template.substitute(NAME=recipient,MESSAGE=raw_msg,LINK=settings.FRONTEND)
+
+                    # send email
+                    user_util.sendmail(email,subject,body)
                 user_util.log_account_activity(
                     authenticated_user, create_user, "Account Creation",
                     "USER CREATED")

@@ -204,7 +204,6 @@ class InnovationViewSet(viewsets.ModelViewSet):
             role = None
             roles = user_util.fetchusergroups(user.id)
             for item in roles:
-                # print(item)
                 if 'LEAD' not in item:
                     if 'CHIEF' not in item:
                         role = item
@@ -212,9 +211,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
                         is_chief_evaluator = True
                         role = 'CHIEF_EVALUATOR'
                 else:
-                    # if item != 'LEAD_JUNIOR_OFFICER':
                     is_lead = True
-            print(role)
 
 
             innovations = models.GroupMember.objects.filter(member=user, group__role=role).order_by('-date_created')
@@ -275,6 +272,19 @@ class InnovationViewSet(viewsets.ModelViewSet):
             logger.error(e)
             return Response({'details':'Error Fetching Your Innovations'},status=status.HTTP_400_BAD_REQUEST)
 
+    @action(methods=["GET"], detail=False, url_path="pending-final-review", url_name="pending-final-review")
+    def pending_final_review(self, request):
+        try:
+            innovations = []
+            innovation = models.PendingFinalReport.objects.filter(status=True).order_by('-date_created')
+            for i in innovation:
+                innovations.append(i.innovation)
+            innovation = serializers.FullInnovationSerializer(innovations, many=True)            
+            return Response(innovation.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(e)
+            return Response({'details':'Error Fetching Your Innovations'},status=status.HTTP_400_BAD_REQUEST)
+            
 
     @action(methods=["POST"], detail=False, url_path="create-innovation",url_name="create-innovation")
     def innovation(self, request):
@@ -1358,21 +1368,29 @@ class EvaluationViewSet(viewsets.ModelViewSet):
 
                 check = models.FinalEvaluatorsComment.objects.filter(reviewer=authenticated_user,innovation=innovation)
                 
-                if action == 'DROPPED':
+                if action == 'DROPPED' or action == 'DROP':
                     innovation.status = 'DROPPED'
+                    msg_to_innovator = "Your innovation has gone through our 6 stages of evaluation and has been found to be not viable. Please log on  to our platform to review the final report and evaluators recommendations.<br>\
+                    You are not eligible for our Innovation Management Support program. <br>\
+                    Please contact the IENAfrica Innovation Manager to schedule a meeting for more details."
+                elif action == 'APPROVE':
+                    innovation.status = 'APPROVED'
+                    msg_to_innovator = "Your innovation has gone through our 6 stages of evaluation and has been found to be viable. Please log on to our platform to review the final report and evaluators recommendations.<br>\
+                    With this positive evaluation outcome you are now eligible for our Innovation Management Support program.<br>\
+                    Please contact the IENAfrica Innovation Manager to schedule a meeting for more details."
                 else:
                     innovation.status = 'EVALUATED'
                 innovation.save()
      
                 if not check:
-                    action = "Final evaluator comment Created by " + role
+                    action_text = "Final evaluator comment Created by " + role
                     reviewInstance = models.FinalEvaluatorsComment.objects.create(**payload)   
 
                     try:
                         # SEND NOTIFICATION
                         group = models.Group.objects.filter(innovation=innovation,stage=stage).order_by('-date_created').first()
                         innovation_name = models.InnovationDetails.objects.get(innovation=innovation_id).innovation_name
-                        notification = f"Innovation {innovation_name}: has been successfully reviewed by assigned  {role} {authenticated_user.first_name} {authenticated_user.last_name}"
+                        notification = f"Innovation {innovation_name}: has been successfully reviewed by assigned  {role} {authenticated_user.first_name} {authenticated_user.last_name}, with a final action of {action}"
 
                         subject = "Application Reviewed"
                         first_name = group.creator.first_name
@@ -1386,11 +1404,36 @@ class EvaluationViewSet(viewsets.ModelViewSet):
 
                         # send email
                         user_util.sendmail(email,subject,message)
+
                     except Exception as e:
-                        logger.error(e)       
+                        logger.error(e)   
+
+                if action == 'DROPPED' or action == 'DROP' or action == 'APPROVE':
+                    if role == 'CHIEF_EVALUATOR':
+                        try:
+                            # SEND NOTIFICATION
+                            # Message to Innovator
+                            innovator_fname = innovation.creator.first_name
+                            innovator_email = innovation.creator.email
+                            subject = "Your Innovation Status"
+
+                            message_template = read_template("general.html")
+                            message = message_template.substitute(NAME=innovator_fname,MESSAGE=msg_to_innovator,LINK=settings.FRONTEND)
+
+                            # save notification
+                            models.Notifications.objects.create(innovation=innovation,subject=subject,recipient=innovation.creator, sender=authenticated_user, notification=msg_to_innovator)
+
+                            # send email
+                            user_util.sendmail(innovator_email,subject,message)
+
+                        except Exception as e:
+                            logger.error(e)    
+
+                        # Save pending final report
+                        models.PendingFinalReport.objects.create(innovation=innovation)
 
                 user_util.log_account_activity(
-                    authenticated_user, authenticated_user, f"{action}. Id: " + str(reviewInstance.id) , f"Junior Innovation Review")
+                    authenticated_user, authenticated_user, f"{action_text}. Id: " + str(reviewInstance.id) , f"{role} Innovation Review")
                 return Response("success", status=status.HTTP_200_OK)
         else:
             return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)

@@ -127,6 +127,8 @@ class AnalyticsViewSet(viewsets.ViewSet):
         partners = get_user_model().objects.filter(
             groups__name='PARTNER').count()
 
+        pfr = innovation_models.PendingFinalReport.objects.filter(status=True).count()
+
         series = [
             {"data": [innovations],"label":"Innovations"},
             {"data": [innovators],"label":"Innovators"},
@@ -145,7 +147,8 @@ class AnalyticsViewSet(viewsets.ViewSet):
             "mentors" : mentors,
             "managers" : managers,
             "partners" : partners,
-            "series" : series
+            "series" : series,
+            "pfr" : pfr,
         }
         return Response(info, status=status.HTTP_200_OK)
 
@@ -228,7 +231,6 @@ class AnalyticsViewSet(viewsets.ViewSet):
         pending = 0
 
         for innovation in innovations:
-            print(innovation.group.innovation.id)
             if role == 'JUNIOR_OFFICER':
                 check = innovation_models.InnovationReview.objects.filter(innovation=innovation.group.innovation.id,reviewer=user).exists()
             elif role == 'CHIEF_EVALUATOR':
