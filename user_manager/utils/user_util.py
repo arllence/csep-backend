@@ -67,7 +67,9 @@ def sendmail(recipient,subject,message):
 
 
 def award_role(role,account_id):
-    excludes = ["CHIEF_EVALUATOR"]
+    excludes = ["CHIEF_EVALUATOR","SUBJECT_MATTER_EVALUATOR"]
+    if not role:
+        return True
     if role in excludes:
         return True
     else:
@@ -82,12 +84,10 @@ def award_role(role,account_id):
         return False
 
 def revoke_role(role,account_id):
-    print(role)
-    excludes = ["CHIEF_EVALUATOR","SUBJECT_MATTER_EVALUATOR","NONE"]
+    excludes = ["CHIEF_EVALUATOR","SUBJECT_MATTER_EVALUATOR"]
     if not role:
         return True
     if role in excludes:
-        print("role in excludes")
         return True
     else:
         role = "LEAD_" + role        
