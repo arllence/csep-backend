@@ -82,7 +82,10 @@ def award_role(role,account_id):
         return False
 
 def revoke_role(role,account_id):
+    print(role)
     excludes = ["CHIEF_EVALUATOR","SUBJECT_MATTER_EVALUATOR","NONE"]
+    if not role:
+        return True
     if role in excludes:
         return True
     else:
