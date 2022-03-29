@@ -1192,9 +1192,15 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     groupinstance = models.Group.objects.create(**payload)
                 else:
                     groupinstance = group_exists.first()
-                
+                    
+                if role == "CHIEF_EVALUATOR":
+                    assignees = get_user_model().objects.filter(groups__name=role)
+
                 for assignee in assignees:
-                    member = get_user_model().objects.get(id=assignee)
+                    if role == "CHIEF_EVALUATOR":
+                        member = assignee
+                    else:
+                        member = get_user_model().objects.get(id=assignee)
                     is_existing =  models.GroupMember.objects.filter(group=groupinstance,member=member).exists()
                     if not is_existing:
                         user_util.revoke_role(role,assignee)
@@ -1226,7 +1232,10 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 if not assign_role:
                     return Response({"details": "Role Assigning Failed"}, status=status.HTTP_400_BAD_REQUEST)
 
-                assignees = ", ".join(assignees)   
+                try:
+                    assignees = ", ".join(assignees)   
+                except Exception as e:
+                    pass
 
                 if role == 'INTERNAL_EVALUATOR':    
                     innovation.stage = 'IV'
