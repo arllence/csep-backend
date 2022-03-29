@@ -82,7 +82,7 @@ def award_role(role,account_id):
         return False
 
 def revoke_role(role,account_id):
-    excludes = ["CHIEF_EVALUATOR"]
+    excludes = ["CHIEF_EVALUATOR","SUBJECT_MATTER_EVALUATOR"]
     if role in excludes:
         return True
     else:
