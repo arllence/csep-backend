@@ -223,6 +223,7 @@ class FullInnovationSerializer(serializers.ModelSerializer):
     is_evaluated = serializers.SerializerMethodField()
     date_assigned = serializers.SerializerMethodField()
     date_evaluated = serializers.SerializerMethodField()
+    evaluation_averages = serializers.SerializerMethodField()
 
     class Meta:
         model = models.Innovation
@@ -381,6 +382,47 @@ class FullInnovationSerializer(serializers.ModelSerializer):
         except Exception as e:
             print(e)
             return []
+
+    def get_evaluation_averages(self,obj):
+        try:
+            ie_average = 0     
+            try:       
+                ie_reviews = self.get_ie_reviews(obj)
+                for review in ie_reviews:
+                    ie_average += dict(review)['total_score']
+                ie_average /= len(ie_reviews)
+                ie_average = round(ie_average, 2)
+            except Exception as e:
+                pass
+            
+            ee_average = 0
+            try:
+                ee_reviews = self.get_ee_reviews(obj)
+                for review in ee_reviews:
+                    ee_average += dict(review)['total_score']
+                ee_average /= len(ee_reviews)
+                ee_average = round(ee_average, 2)
+            except Exception as e:
+                pass
+
+            sme_average = 0
+            try:
+                sme_reviews = self.get_sme_reviews(obj)
+                for review in sme_reviews:
+                    sme_average += dict(review)['total_score']
+                sme_average /= len(sme_reviews)
+                sme_average = round(sme_average, 2)
+            except Exception as e:
+                pass
+
+            info = {
+                "ie_average" : ie_average,
+                "ee_average" : ee_average,
+                "sme_average" : sme_average
+            }
+            return info
+        except Exception as e:
+            print(e)
 
     
     def get_im_reviews(self, obj):
