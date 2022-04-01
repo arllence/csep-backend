@@ -1,0 +1,51 @@
+version: "3.5"
+services:
+  nginx:
+    image: nginx:1.17.9-alpine
+    env_file:
+      - .env
+    ports:
+      - "5600:5600"
+    volumes:
+      - .:/src
+      - ./config:/etc/nginx/conf.d
+    deploy:
+        update_config:
+          parallelism: 1
+          max_failure_ratio: 0
+          delay: 3s
+          failure_action: rollback
+        restart_policy:
+          max_attempts: 3
+          condition: on-failure
+        replicas: 5
+        placement:
+          constraints: [node.role == manager]
+    networks: 
+      - ien_main_backend_network
+    depends_on:
+      - web
+  web:
+    env_file:
+      - .env
+    build: .
+    image: ien_backend_image:latest
+    command: bash -c "python manage.py runserver 0.0.0.0:5700"
+    expose:
+      - "5700"
+    deploy:
+      restart_policy:
+        max_attempts: 3
+        condition: on-failure
+      replicas: 3
+      placement:
+        constraints: [node.role == manager]
+    volumes:
+      - .:/src
+    networks: 
+      - ien_main_backend_network
+networks: 
+    ien_main_backend_network:
+      driver: overlay
+
+
