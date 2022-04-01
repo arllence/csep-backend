@@ -17,7 +17,7 @@ services:
       restart_policy:
         max_attempts: 3
         condition: on-failure
-      replicas: 1
+      replicas: 2
       placement:
         constraints: [node.role == manager]
     volumes:
