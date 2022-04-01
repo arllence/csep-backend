@@ -5,9 +5,9 @@ services:
       - .env
     build: .
     image: ien_backend_image:latest
-    command: bash -c "python3 manage.py runserver 0.0.0.0:5700"
+    command: bash -c "python3 manage.py runserver 0.0.0.0:5600"
     ports:
-      - "5700:5700"
+      - "5600:5600"
     deploy:
       update_config:
         parallelism: 1
