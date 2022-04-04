@@ -199,6 +199,22 @@ class InnovationSupportService(models.Model):
         return str(self.id)
 
 
+class OtherInnovationSupportService(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    innovation = models.ForeignKey(
+       Innovation, on_delete=models.CASCADE, related_name="otehr_innovation_support_services"
+    )
+    service = models.CharField(max_length=255)
+    date_created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        app_label = "innovation"
+        db_table = "other_innovation_support_services"
+
+    def __str__(self):
+        return str(self.id)
+
+
 class Evaluation(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     innovation = models.ForeignKey(

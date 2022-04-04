@@ -563,12 +563,12 @@ class InnovationViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             with transaction.atomic():
                 innovation_id = payload['innovation']
-                innovation_exists = models.InnovationInformation.objects.filter(innovation=innovation_id).exists()
+                innovation_exists = models.InnovationInformation.objects.filter(innovation=innovation_id)
                 innovation = models.Innovation.objects.get(id=innovation_id)
                 payload['innovation'] = innovation
 
                 if innovation_exists:
-                    instance = models.InnovationInformation.objects.get(innovation=innovation_id)
+                    instance = innovation_exists.first()
                     instance.innovation_brief = payload['innovation_brief']
                     instance.problem_statement = payload['problem_statement']
                     instance.background_research = payload['background_research']
@@ -619,6 +619,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
             innovation_id = payload['innovation']
             innovation = models.Innovation.objects.get(id=innovation_id)
             payload['innovation'] = innovation
+            other_support = payload['other_support']
             # print("innovation: ",innovation.__dict__)
 
             support_services = []
@@ -629,6 +630,18 @@ class InnovationViewSet(viewsets.ModelViewSet):
                 logger.error(e)
 
             del payload['support_service']
+            del payload['other_support']
+
+            try:
+                otherSupport = models.OtherInnovationSupportService.objects.filter(innovation=innovation_id)
+                if otherSupport:
+                    otherSupport = otherSupport.first()
+                    otherSupport.service = other_support
+                    otherSupport.save()
+                else:
+                    models.OtherInnovationSupportService.objects.create(innovation=innovation, service=other_support)
+            except Exception as e:
+                logger.error(e)
 
 
             links_exists =  models.InnovationSocialLinks.objects.filter(innovation=innovation_id).exists()
@@ -694,13 +707,20 @@ class InnovationViewSet(viewsets.ModelViewSet):
             for service in services:
                 support_service.append(service.service.service)
 
+            try:
+                other_services =  models.OtherInnovationSupportService.objects.get(innovation=innovation_id)
+                other_services = other_services.service
+            except Exception as e:
+                print(e)
+
             links = models.InnovationSocialLinks.objects.filter(innovation=innovation_id)
             try:
                 links = serializers.InnovationSocialLinksSerializer(links[0], many=False).data
             except Exception as e:
                 logger.error(e)
                 links = []
-            links.update({"support_service":support_service})
+
+            links.update({"support_service":support_service,"other_support":other_services})
             # print(links)
             return Response(links, status=status.HTTP_200_OK)
         except Exception as e:

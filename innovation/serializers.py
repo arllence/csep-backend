@@ -201,11 +201,18 @@ class InnovationSupportServiceSerializer(serializers.ModelSerializer):
         model = models.InnovationSupportService
         fields = '__all__'
 
+class OtherInnovationSupportServiceSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = models.OtherInnovationSupportService
+        fields = '__all__'
+
 class FullInnovationSerializer(serializers.ModelSerializer):
     creator = UsersSerializer()
     details = serializers.SerializerMethodField(read_only=True)
     information = serializers.SerializerMethodField(read_only=True)
     support_services = serializers.SerializerMethodField(read_only=True)
+    other_support_services = serializers.SerializerMethodField()
     social_links = serializers.SerializerMethodField(read_only=True)
     group = serializers.SerializerMethodField(read_only=True)
     jo_group = serializers.SerializerMethodField(read_only=True)
@@ -256,6 +263,17 @@ class FullInnovationSerializer(serializers.ModelSerializer):
         support_services = models.InnovationSupportService.objects.filter(innovation=obj).order_by('service')
         serializer = InnovationSupportServiceSerializer(support_services, many=True)
         return serializer.data
+    
+    def get_other_support_services(self, obj):
+        try:
+            support_services = models.OtherInnovationSupportService.objects.get(innovation=obj)
+            serializer = OtherInnovationSupportServiceSerializer(support_services, many=False)
+            return serializer.data
+        except(ObjectDoesNotExist):
+            return None
+        except Exception as e:
+            print(e)
+            return None
 
     def get_social_links(self, obj):
         try:
