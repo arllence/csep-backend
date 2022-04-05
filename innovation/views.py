@@ -1603,7 +1603,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     innovation = models.Innovation.objects.get(id=innovation_id)
                     payload['innovation'] = innovation
                     payload['reviewer'] = authenticated_user
-                    action = payload['action']
+                    verdict = payload['action']
                     review = payload['review']
                     innovation_name = models.InnovationDetails.objects.get(innovation=innovation).innovation_name
                 except Exception as e:
@@ -1614,18 +1614,18 @@ class EvaluationViewSet(viewsets.ModelViewSet):
 
                 message = ""
 
-                if action == 'DROP':
+                if verdict == 'DROP':
                     innovation.status = 'DROPPED'                    
                     message = f"After thorough review of {innovation_name}, we are sorry to inform you that we shall not be able to proceed with your innovation at this time. \nWe appreciate your effort, trying to make the world a better place. \nBelow is a copy of reviewer final comment: \n\n {review} \n\n"
                 else:
-                    if action == 'INVITATION_TO_PRESENT':
+                    if verdict == 'INVITATION_TO_PRESENT':
                         innovation.status = 'INVITATION_TO_PRESENT'
                         message = f"After thorough review of {innovation_name}, we would like to invite you to do a presentation, to enable us understand your innovation further.\n\n"
-                    elif action == 'RESUBMIT':
+                    elif verdict == 'RESUBMIT':
                         innovation.status = 'RESUBMIT'
                         innovation.edit = True
                         message = f"After thorough review of your innovation {innovation_name}, we have recommended appropriate changes.\nPlease effect them and Resubmit.\n\n"
-                    elif action == 'APPROVED':
+                    elif verdict == 'APPROVED':
                         innovation.status = 'APPROVED'
                         innovation.edit = True
                         message = f"Congratulations, your innovation {innovation_name} has been approved!\n\n"
@@ -1651,7 +1651,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     action = "Created"
                     reviewInstance = models.FinalInnovationManagerReview.objects.create(**payload)    
 
-                if action != 'PROCEED' or action != 'UNDER_REVIEW':
+                if verdict != 'PROCEED' or verdict != 'UNDER_REVIEW':
                     # SEND NOTIFICATION
                     recipient = innovation.creator.first_name
                     subject = "Your Innovation Status"
