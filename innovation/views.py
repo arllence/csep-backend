@@ -1202,6 +1202,15 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     logger.error(e)
                     return Response({"details": "Invalid Innovation Id"}, status=status.HTTP_400_BAD_REQUEST)   
 
+
+                checked_stages = ['I','II','III','IV','V','VI']
+                if lead == 'NONE':
+                    if not reassign:
+                        if role != "CHIEF_EVALUATOR":
+                            if innovation.stage in checked_stages:
+                                return Response({"details": "Select a Team Lead!"}, status=status.HTTP_400_BAD_REQUEST)  
+
+
                 group_exists = models.Group.objects.filter(innovation=innovation, status=True)
                 if not reassign:
                     if group_exists:                    
@@ -1623,12 +1632,12 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     else:
                         innovation.status = 'UNDER_REVIEW'
 
-                    if innovation.stage == "II":
-                        innovation.stage = "III"
-                    elif innovation.stage == "III":
-                        innovation.stage = "IV"
-                    elif innovation.stage == "IV":
-                        innovation.stage = "V"
+                    # if innovation.stage == "II":
+                    #     innovation.stage = "III"
+                    # elif innovation.stage == "III":
+                    #     innovation.stage = "IV"
+                    # elif innovation.stage == "IV":
+                    #     innovation.stage = "V"
                         
                 innovation.save()
 
