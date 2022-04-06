@@ -72,6 +72,8 @@ def award_role(role,account_id):
         return True
     if role in excludes:
         return True
+    if account_id in excludes:
+        return True
     else:
         role = "LEAD_" + role
     try:
@@ -88,6 +90,8 @@ def revoke_role(role,account_id):
     if not role:
         return True
     if role in excludes:
+        return True
+    if account_id in excludes:
         return True
     else:
         role = "LEAD_" + role        
