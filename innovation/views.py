@@ -1686,7 +1686,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                 notification = serializers.NotificationsSerializer(notification, many=True).data  
             except Exception as e:
                 logger.error(e)
-                notification = {}
+                notification = []
             return Response(notification, status=status.HTTP_200_OK)
         except Exception as e:
             logger.error(e)
