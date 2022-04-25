@@ -118,3 +118,35 @@ def custom_revoke_role(role,account_id):
         
 
 
+def get_role_by_stage(stage):
+    if stage == 'I' or stage == 'II':
+        role = 'JUNIOR_OFFICER'
+    elif stage == 'III':
+        role = 'JUNIOR_OFFICER'
+    elif stage == 'IV':
+        role = 'INTERNAL_EVALUATOR'
+    elif stage == 'V':
+        role = 'SUBJECT_MATTER_EVALUATOR'
+    elif stage == 'VI':
+        role = 'EXTERNAL_EVALUATOR'
+    elif stage == 'VII':
+        role = 'CHIEF_EVALUATOR'
+    else:
+        role = None
+
+    return role
+
+
+def get_role_from_roles(roles):
+    role = None
+    for item in roles:
+        if 'LEAD' not in item:
+            if 'CHIEF' not in item:
+                role = item
+            else:
+                role = 'CHIEF_EVALUATOR'
+        else:
+            if item == 'LEAD_INNOVATION_MANAGER':
+                role = 'LEAD_INNOVATION_MANAGER'
+
+    return role

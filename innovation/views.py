@@ -272,6 +272,7 @@ class InnovationViewSet(viewsets.ModelViewSet):
             logger.error(e)
             return Response({'details':'Error Fetching Your Innovations'},status=status.HTTP_400_BAD_REQUEST)
 
+
     @action(methods=["GET"], detail=False, url_path="pending-final-review", url_name="pending-final-review")
     def pending_final_review(self, request):
         try:
@@ -284,6 +285,21 @@ class InnovationViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.error(e)
             return Response({'details':'Error Fetching Your Innovations'},status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["POST"], detail=False, url_path="completed-final-review", url_name="completed-final-review")
+    def completed_pending_final_review(self, request):
+        payload = request.data
+        serializer = serializers.GenericIdSerializer(data=payload, many=False)
+        if serializer.is_valid():
+            with transaction.atomic():
+                innovation_id = payload['request_id']
+                innovation = models.PendingFinalReport.objects.filter(innovation=innovation_id).first()
+                innovation.status = False
+                innovation.save()
+                return Response('success', status=status.HTTP_200_OK)
+        else:
+            return Response({"details": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
             
 
     @action(methods=["POST"], detail=False, url_path="create-innovation",url_name="create-innovation")

@@ -572,6 +572,8 @@ class NoteSerializer(serializers.ModelSerializer):
 class DeleteNoteSerializer(serializers.Serializer):
     note_id = serializers.CharField()
 
+class GenericIdSerializer(serializers.Serializer):
+    request_id = serializers.CharField()
 
 class CreateAssignmentSerializer(serializers.Serializer):
     innovation = serializers.CharField()
