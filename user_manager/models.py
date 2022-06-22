@@ -19,9 +19,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.CharField(max_length=100, unique=True)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
-    register_as = models.CharField(max_length=50)
-    hear_about_us = models.CharField(max_length=255, blank=True,null=True)
-    hear_about_us_other = models.CharField(max_length=255, blank=True,null=True)
+    registration_no = models.CharField(max_length=50, unique=True)
     accepted_terms = models.BooleanField(default=False)
     newsletter = models.BooleanField(default=False)
     verified_email = models.BooleanField(default=False)
@@ -34,10 +32,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     date_created = models.DateTimeField(auto_now_add=True)
     objects = UserManager()
 
-    USERNAME_FIELD = "email"
+    USERNAME_FIELD = "registration_no"
 
     def __str__(self):
-        return str(self.email)
+        return str(self.registration_no)
 
     def has_perm(self, perm, obj=None):
         return True
@@ -49,22 +47,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         db_table = "systemusers"
 
 
-class Guardian(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="guardian_details"
-    )
-    name = models.CharField(max_length=255)
-    id_number = models.CharField(max_length=255)
-    contact = models.CharField(max_length=255)
-    date_created = models.DateTimeField(auto_now_add=True)
-    
-    class Meta:
-        app_label = "user_manager"
-        db_table = "guardian"
 
-    def __str__(self):
-        return str(self.name)
 
 class UserInfo(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

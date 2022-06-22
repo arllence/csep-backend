@@ -5,7 +5,6 @@ from user_manager.models import Document
 from rest_framework.views import APIView
 from . import models
 from . import serializers 
-from django.contrib.auth import authenticate
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.contrib.auth.models import Permission
@@ -24,20 +23,7 @@ from app_manager import models as app_manager_models
 from string import Template
 from django.db.models import Q
 
-import innovation
 
-# create and configure logger
-# loggername = str(date.today())
-# logging.basicConfig(
-#     filename=f"/opt/logs/innovation/{loggername}",
-#     format='%(asctim)s - %(name)s - %(funcName)s:%(lineno)d - %(message)s',
-#     filemode='a'
-# )
-# # new logger object
-# logger = logging.getLogger()
-
-# # setting threshold of logger
-# logger.setLevel(logging.DEBUG)
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -53,26 +39,26 @@ def read_template(filename):
         return Template(template_file_content)
 
 
-class InnovationViewSet(viewsets.ModelViewSet):
+class VotingViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
     parser_classes = (MultiPartParser,JSONParser)
-    queryset = models.Innovation.objects.all().order_by('id')
+    queryset = models.Positions.objects.all().order_by('id')
     serializer_class = serializers.SystemUsersSerializer
     search_fields = ['id', ]
 
     def get_queryset(self):
         return []
 
-    @action(methods=["GET"], detail=False, url_path="innovation-id", url_name="innovation-id")
-    def innovation_id(self, request):
+    @action(methods=["GET"], detail=False, url_path="fetch-positions", url_name="fetch-positions")
+    def fetch_positions(self, request):
         try:
-            innovation = models.Innovation.objects.filter(creator=request.user,status="ONGOING").order_by('-date_created')
-            # print(innovation)
-            if innovation:
-                innovation = serializers.InnovationSerializer(innovation, many=True)
+            positions = models.Positions.objects.all.order_by('name')
+            # print(Positions)
+            if Positions:
+                Positions = serializers.PositionsSerializer(Positions, many=True)
                 response_info = {
-                    "innovation_details" : innovation.data,
-                    "id" : innovation.data[0]['id']
+                    "Positions_details" : Positions.data,
+                    "id" : Positions.data[0]['id']
                 }
                 return Response(response_info, status=status.HTTP_200_OK)
             else:

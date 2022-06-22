@@ -25,7 +25,7 @@ from django.contrib.auth.models import Permission, Group
 from django.db import IntegrityError, transaction
 from user_manager import models as models
 from app_manager import models as app_manager_models
-from innovation import models as innovation_models
+# from innovation import models as innovation_models
 from user_manager.forms import PictureUploadForm
 from string import Template
 from email_template import *
@@ -68,18 +68,22 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
     @action(methods=["POST"], detail=False, url_path="login", url_name="login")
     def login_user(self, request):
         payload = request.data
-        # print(payload)
+        print(payload)
         email = request.data.get('email').strip()
         password = request.data.get('password')
+
         if email is None:
             return Response({"details": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
         if password is None:
             return Response({"details": "Password is required"}, status=status.HTTP_400_BAD_REQUEST)
-        input_email = payload['email']
+
+        input_email = payload['email']#.upper()
         input_password = payload['password']
+
+        print(input_email)
         
         is_authenticated = authenticate(
-            email=input_email, password=input_password)
+            registration_no=input_email, password=input_password)
 
         if is_authenticated: 
             last_password_reset = is_authenticated.last_password_reset
@@ -120,6 +124,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                     'name': is_authenticated.first_name,
                     'first_name': is_authenticated.first_name,
                     'last_name': is_authenticated.last_name,
+                    'registration_no': is_authenticated.registration_no,
                     'role': role,
                     # 'password_change_status': change_password,
                     "verified_email": is_authenticated.verified_email,
@@ -158,9 +163,8 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                 email = payload['email']
                 first_name = payload['first_name']
                 last_name = payload['last_name']
-                register_as = payload['register_as']
-                hear_about_us = payload['hear_about_us']
-                hear_about_us_other = payload['hear_about_us_other']
+                registration_no = payload['registration_no']
+                role = payload['role']
                 newsletter = payload['newsletter']
                 accepted_terms = payload['accepted_terms']
                 password = payload['password']
@@ -206,7 +210,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                                     status=status.HTTP_400_BAD_REQUEST)
                 
                 try:
-                    group_details = Group.objects.get(id=register_as)
+                    group_details = Group.objects.get(name=role)
                 except (ValidationError, ObjectDoesNotExist):
                     return Response({'details': 'Role does not exist'}, status=status.HTTP_400_BAD_REQUEST)
                 
@@ -220,11 +224,9 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                     "email": email,
                     "first_name": first_name,
                     "last_name": last_name,
-                    "hear_about_us": hear_about_us,
-                    "hear_about_us_other": hear_about_us_other,
+                    "registration_no": registration_no.upper(),
                     "newsletter": newsletter,
                     "accepted_terms": accepted_terms,
-                    "register_as": register_as,
                     "is_active": True,
                     "is_superuser": is_superuser,
                     "password": hashed_pwd,
@@ -238,7 +240,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                 try:
                     recipient = create_user.email
                     name = create_user.first_name
-                    subject = "Activate Your IEN-AFRICA Account"
+                    subject = "Activate Your CSEP Account"
                     otp = random.randint(1000,100000)
                     print("otp: ", otp)
                     message_template = read_template("activation_email.html")
@@ -255,7 +257,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                 except Exception as e:
                     logger.error(e)
                 info = {
-                    'email': email
+                    'email': registration_no
                 }
                 return Response(info, status=status.HTTP_200_OK)
 
@@ -308,7 +310,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                     models.OtpCodes.objects.create(recipient=user_details,otp=otp)
 
                                
-                subject = "Password Reset | IEN-AFRICA"
+                subject = "Password Reset | CSEP"
                 link = serverurl + "?otp=" + str(otp) + "&email=" + email
                 # message = f"Hello {user_details.first_name}, \nClick this link to reset your password: {link}"
 
@@ -403,7 +405,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                     user = get_user_model().objects.get(email=email)
                     recipient = user.email
                     name = user.first_name
-                    subject = "Activate Your IEN-AFRICA Account"
+                    subject = "Activate Your CSEP Account"
                     otp = random.randint(1000,100000)
                     print(otp)
                     # message =f"Hi {name}, thanks for joining us \nJust one more step...\nHere is your OTP verification code: {otp}"
@@ -444,7 +446,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
     def check_completed_profile(self, request):
         user_id = request.user.id
         roles = user_util.fetchusergroups(user_id)
-        if 'INNOVATOR' in roles:
+        if 'CANDIDATE' in roles:
             if user_id:
                 check = models.CompletedProfile.objects.filter(user=user_id).exists()
                 info = {
@@ -575,17 +577,12 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                     "course_name" : course_name,
                     "study_summary" : study_summary,
                 }
+
                 is_underage = False
                 if age_group == "14-17":
                     is_underage = True
-                    guardian_details = {
-                        "name" : payload['guardian_name'],
-                        "id_number" : payload['guardian_id_number'],
-                        "contact" : payload['guardian_contact']
-                    }
-                    for key in guardian_details:
-                        if not guardian_details[key]:
-                            return Response({'details':"Guardian Details Required"}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({'details':"Sorry! You are too young to participate on this platform!"}, status=status.HTTP_400_BAD_REQUEST)
+                    
 
                 user_exists = models.CompletedProfile.objects.filter(user=authenticated_user).exists()
                 if user_exists:
@@ -605,8 +602,6 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
 
                     user_profile.save()
 
-                    if is_underage:
-                        models.Guardian.objects.filter(user=authenticated_user).update(**guardian_details)
 
                     current_skills = models.Skills.objects.filter(user=authenticated_user)
                     all_skills = []
@@ -653,10 +648,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                         "employment_status": employment
                     }
                     models.UserInfo.objects.create(**profile)
-                    if is_underage:
-                        guardian_details.update({"user": authenticated_user})
-                        models.Guardian.objects.create(**guardian_details)
-
+                    
                     for skill in skills:
                         to_create = {
                             "user": authenticated_user,
@@ -674,6 +666,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                 return Response("succees", status=status.HTTP_200_OK)
         else:
             return Response({'details':serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            
 
     @action(methods=["GET"], detail=False, url_path="user-profile", url_name="user-profile")
     def user_profile(self, request):
@@ -920,9 +913,6 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                     if document_type == 'profile_picture':
                         original_file_exists = models.ProfilePicture.objects.filter(
                             original_file_name=original_file_name).exists()
-                    elif checker == "INNOVATION":
-                        original_file_exists = innovation_models.InnovationDocument.objects.filter(
-                            original_file_name=original_file_name).exists()
                     else:
                         original_file_exists = models.Document.objects.filter(
                             original_file_name=original_file_name).exists()
@@ -947,35 +937,15 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                             info = {
                                     "url_link" : url
                                 }
-                        else:
-                            if checker == "INNOVATION":
-                                title_obj = app_manager_models.IntellectualProperty.objects.get(id=document_type)
-                                title = title_obj.name
-                                innovation = request.data['innovation']
-                                innovation = innovation_models.Innovation.objects.get(id=innovation)
-                                exists = innovation_models.InnovationDocument.objects.filter(innovation=innovation,title=title)
-                                if exists:
-                                    fileInstance = exists.first()
-                                    fileInstance.document=f
-                                    fileInstance.innovation=innovation
-                                    fileInstance.original_file_name=original_file_name
-                                    fileInstance.title=title
-                                    fileInstance.save()
-                                else:
-                                    newinstance = innovation_models.InnovationDocument.objects.create(
-                                        document=f, innovation=innovation, original_file_name=original_file_name,title=title)
-                                info = {
-                                    "success" : "success"
-                                }
-                            else:
-                                newinstance = models.Document.objects.create(
-                                    document=f, user=loggedin_user, original_file_name=original_file_name, document_type=document_type)
-                                url = newinstance.document.url
-                                doc_id = newinstance.id
-                                info = {
-                                    "url_link" : url,
-                                    "doc_id": doc_id
-                                }
+                        else:                            
+                            newinstance = models.Document.objects.create(
+                                document=f, user=loggedin_user, original_file_name=original_file_name, document_type=document_type)
+                            url = newinstance.document.url
+                            doc_id = newinstance.id
+                            info = {
+                                "url_link" : url,
+                                "doc_id": doc_id
+                            }
                 if upload_status is True:
                     return Response(info, status=status.HTTP_200_OK)
                 else:
@@ -999,7 +969,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
     #                 user = request.user
     #                 recipient = user.email
     #                 name = user.first_name
-    #                 subject = "Activate Your IEN-AFRICA Account"
+    #                 subject = "Activate Your CSEP Account"
     #                 otp = random.randint(1000,100000)
     #                 message =f"Hi {name}, thanks for joining us \nJust one more step...\nHere is your OTP verification code: {otp}"
     #                 try:
@@ -1465,13 +1435,13 @@ class SuperUserViewSet(viewsets.ModelViewSet):
                 if role in evaluators:
                     role = role.split('_')
                     role = " ".join(role)
-                    raw_msg = f"Thank you for accepting our invitation to be on our panel of {role}S.  Please click <a href='www.ienafrica.org'>www.ienafrica.org</a> to learn more about us.<br><br>\
-                    The evaluation process has been digitized for your convenience. Please click on <a href='https://portal-ienafrica.org'>www.portal-ienafrica.org</a> to log in and view the list of innovation  startups assigned to you.<br><br>\
+                    raw_msg = f"Thank you for accepting our invitation to be on our panel of {role}S.  Please click <a href='www.CSEP.org'>www.CSEP.org</a> to learn more about us.<br><br>\
+                    The evaluation process has been digitized for your convenience. Please click on <a href='https://portal-CSEP.org'>www.portal-CSEP.org</a> to log in and view the list of innovation  startups assigned to you.<br><br>\
                     Our Innovations Manager will contact you shortly to schedule a training session to orient you to the evaluation platform and provide more details.<br><br>\
-                    <b><u>For more information and support please drop us an email innovation@ienafrica.org</u></b>"
+                    <b><u>For more information and support please drop us an email innovation@CSEP.org</u></b>"
 
                     recipient = first_name
-                    subject = "Welcome To IEN-AFRICA"
+                    subject = "Welcome To CSEP"
                     email = email
 
                     message_template = read_template("general.html")

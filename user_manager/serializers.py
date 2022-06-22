@@ -156,21 +156,15 @@ class ProfileInfoSerializer(serializers.ModelSerializer):
         model = models.UserInfo
         fields = '__all__'
 
-class GuardianSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.Guardian
-        fields = '__all__'
 
 class CreateUserSerializer(serializers.Serializer):
     email = serializers.CharField()
     first_name = serializers.CharField()
     last_name = serializers.CharField()
-    # phone_number = serializers.CharField()
-    register_as = serializers.CharField()
-    # gender = serializers.CharField()
+    registration_no = serializers.CharField()
+    role = serializers.CharField()
     password = serializers.CharField()
     confirm_password = serializers.CharField()
-    hear_about_us = serializers.CharField()
     newsletter = serializers.BooleanField()
     accepted_terms = serializers.BooleanField()
 
@@ -207,7 +201,6 @@ class UserProfileSerializer(serializers.Serializer):
     certification = serializers.SerializerMethodField('get_certification')
     association = serializers.SerializerMethodField('get_association')
     hobby = serializers.SerializerMethodField('get_hobby') 
-    guardian = serializers.SerializerMethodField('get_guardian')
 
     def get_profile_info(self, obj):
         try:
@@ -289,15 +282,7 @@ class UserProfileSerializer(serializers.Serializer):
             print(e)
             return []
 
-    def get_guardian(self, obj):
-        try:
-            current_user = obj
-            guardian = models.Guardian.objects.get(user=current_user.id)
-            serializer = GuardianSerializer(guardian, many=False)
-            return serializer.data
-        except Exception as e:
-            print(e)
-            return []
+   
 
 
 class SuspendUserSerializer(serializers.Serializer):

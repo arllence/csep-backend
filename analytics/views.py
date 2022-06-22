@@ -10,7 +10,7 @@ from analytics import serializers
 from django.db.models import Count, Q
 from analytics.utils import dates
 import json, logging
-from innovation import models as innovation_models
+from voting import models as innovation_models
 from user_manager import models as user_manager_models
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from datetime import datetime

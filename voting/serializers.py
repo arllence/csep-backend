@@ -10,7 +10,7 @@ from app_manager import models as app_manager_models
 from user_manager.utils import user_util
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 
-import innovation
+import voting
 
 
 
