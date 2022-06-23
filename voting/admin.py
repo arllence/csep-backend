@@ -9,4 +9,5 @@ from voting import models as voting_models
 
 # admin.site.register(user_models.User, SearchUser)
 admin.site.register(voting_models.Positions)
+admin.site.register(voting_models.CandidatePosition)
 

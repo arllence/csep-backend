@@ -670,7 +670,11 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
 
     @action(methods=["GET"], detail=False, url_path="user-profile", url_name="user-profile")
     def user_profile(self, request):
-        authenticated_user = request.user
+        candidate_id = request.query_params.get('candidate_id')
+        if candidate_id is None:
+            authenticated_user = request.user
+        else:
+            authenticated_user = get_user_model().objects.get(id=candidate_id)
         try:
             serializer = serializers.UserProfileSerializer(authenticated_user, many=False)
             return Response(serializer.data, status=status.HTTP_200_OK)

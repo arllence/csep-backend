@@ -21,7 +21,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'user_manager',
     'app_manager',
-    # 'innovation',
+    'voting',
     # 'analytics',
     # 'django_countries'
 ]
