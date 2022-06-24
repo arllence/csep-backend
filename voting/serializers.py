@@ -2,8 +2,10 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.conf import settings
+
+from user_manager.models import ProfilePicture
 from . import models
-from user_manager.serializers import UsersSerializer
+from user_manager.serializers import ProfilePictureSerializer, UsersSerializer
 from app_manager import serializers as app_manager_serializers
 from app_manager import models as app_manager_models
 from user_manager.utils import user_util
@@ -42,6 +44,16 @@ class FetchCandidatePositionSerializer(serializers.ModelSerializer):
     candidate = UsersSerializer()
     positionSerializer = getGenericSerializer(models.Positions)
     position = positionSerializer()
+    profile_picture = serializers.SerializerMethodField('get_profile_picture')
+
+    def get_profile_picture(self, obj):
+        try:
+            profile = ProfilePicture.objects.filter(user=obj.candidate_id, status=True).first()
+            serializer = ProfilePictureSerializer(profile, many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
     class Meta:
         model = models.CandidatePosition
         fields = '__all__'
