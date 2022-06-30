@@ -35,3 +35,108 @@ class CandidatePosition(models.Model):
 
     def __str__(self):
         return str(self.candidate)
+
+
+class Posts(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    candidate = models.ForeignKey(
+       User, on_delete=models.CASCADE, related_name="candidate_post"
+    )
+    post = models.TextField(null=True, blank=True)
+    status = models.BooleanField(default=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "posts"
+
+    def __str__(self):
+        return str(self.candidate)
+
+
+class PostImages(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    post = models.ForeignKey(
+       Posts, on_delete=models.CASCADE, related_name="post_image"
+    )
+    image = models.ImageField()
+    status = models.BooleanField(default=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "post_images"
+
+    def __str__(self):
+        return str(self.post)
+
+
+class PostComments(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    commentor = models.ForeignKey(
+       User, on_delete=models.CASCADE, related_name="commentor_comment"
+    )
+    post = models.ForeignKey(
+       Posts, on_delete=models.CASCADE, related_name="post_comment"
+    )
+    comment = models.TextField()
+    status = models.BooleanField(default=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "post_comments"
+
+    def __str__(self):
+        return str(self.post)
+
+
+class PostCommentChildren(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    commentor = models.ForeignKey(
+       User, on_delete=models.CASCADE, related_name="commentor_comment"
+    )
+    comment = models.ForeignKey(
+       PostComments, on_delete=models.CASCADE, related_name="post_comment"
+    )
+    child = models.TextField()
+    status = models.BooleanField(default=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "post_comment_children"
+
+    def __str__(self):
+        return str(self.comment)
+
+
+class PostLikes(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    post = models.ForeignKey(
+       Posts, on_delete=models.CASCADE, related_name="post_like"
+    )
+    liker = models.ForeignKey(
+       User, on_delete=models.CASCADE, related_name="post_liker"
+    )
+    date_created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "post_likes"
+
+    def __str__(self):
+        return str(self.post)
+
+
+class PostSeen(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    post = models.ForeignKey(
+       Posts, on_delete=models.CASCADE, related_name="post_seen"
+    )
+    user = models.ForeignKey(
+       User, on_delete=models.CASCADE, related_name="seen_post"
+    )
+    date_created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "post_seen"
+
+    def __str__(self):
+        return str(self.post)
+

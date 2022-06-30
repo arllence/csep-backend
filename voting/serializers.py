@@ -33,6 +33,15 @@ def getGenericSerializer(model_arg):
 
     return GenericSerializer
 
+def createGenericSerializer(model_arg,to_exclude):
+    class GenericSerializer(serializers.ModelSerializer):
+        class Meta:
+            model = model_arg
+            # fields = '__all__'
+            exclude = to_exclude
+
+    return GenericSerializer
+
 class CreateCandidatePositionSerializer(serializers.Serializer):
     position = serializers.CharField()
 
@@ -56,6 +65,80 @@ class FetchCandidatePositionSerializer(serializers.ModelSerializer):
             return []
     class Meta:
         model = models.CandidatePosition
+        fields = '__all__'
+
+class PostCommentsSerializer(serializers.ModelSerializer):
+    children = serializers.SerializerMethodField('get_children')
+
+    def get_children(self, obj):
+        try:
+            comment = models.PostCommentChildren.objects.filter(post=obj, status=True)
+            commentSerializer = getGenericSerializer(models.PostCommentChildren)
+            serializer = commentSerializer(comment, many=True)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+
+    class Meta:
+        model = models.PostComments
+        fields = '__all__'
+
+class FetchPostSerializer(serializers.ModelSerializer):
+    candidate = UsersSerializer()    
+    post_image = serializers.SerializerMethodField('get_post_image')
+    profile_picture = serializers.SerializerMethodField('get_profile_picture')
+    post_comments = serializers.SerializerMethodField('get_post_comments')
+    post_comment_children = serializers.SerializerMethodField('get_post_comment_children')
+    post_likes = serializers.SerializerMethodField('get_post_likes')
+    post_seen = serializers.SerializerMethodField('get_post_seen')
+
+    def get_profile_picture(self, obj):
+        try:
+            profile = ProfilePicture.objects.filter(user=obj.candidate_id, status=True).first()
+            serializer = ProfilePictureSerializer(profile, many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+
+    def get_post_image(self, obj):
+        try:
+            image = models.PostImages.objects.filter(post=obj, status=True).first()
+            ImageSerializer = getGenericSerializer(models.PostImages)
+            serializer = ImageSerializer(image, many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+
+    def get_post_comment(self, obj):
+        try:
+            comment = models.PostComments.objects.filter(post=obj, status=True)
+            serializer = PostCommentsSerializer(comment, many=True)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+    
+    def get_post_likes(self, obj):
+        try:
+            likes = models.PostLikes.objects.filter(post=obj, status=True).count()
+            return likes
+        except Exception as e:
+            print(e)
+            return 0
+
+    def get_post_seen(self, obj):
+        try:
+            seen = models.PostSeen.objects.filter(post=obj, status=True).count()
+            return seen
+        except Exception as e:
+            print(e)
+            return 0
+
+    class Meta:
+        model = models.Posts
         fields = '__all__'
 
 # class InnovationDetailsSerializer(serializers.ModelSerializer):

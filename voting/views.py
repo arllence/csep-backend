@@ -1,6 +1,5 @@
 import json
 import logging
-from typing import SupportsAbs
 from user_manager.models import Document
 from rest_framework.views import APIView
 from . import models
@@ -144,7 +143,7 @@ class VotingViewSet(viewsets.ModelViewSet):
             return Response("success", status=status.HTTP_200_OK)
         except Exception as e:
             logger.error(e)
-            return Response({'details':'Error Fetching Candidates'},status=status.HTTP_400_BAD_REQUEST)
+            return Response({'details':'Error Deleting'},status=status.HTTP_400_BAD_REQUEST)
 
 
     @action(methods=["POST"], detail=False, url_path="approve-candidate-position", url_name="approve-candidate-position")
@@ -170,3 +169,190 @@ class VotingViewSet(viewsets.ModelViewSet):
                 logger.error(e)
                 return Response({'details':'Error Approving Candidate'},status=status.HTTP_400_BAD_REQUEST)
         return Response({'details':serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+    # POSTS
+
+    @action(methods=["POST"], detail=False, url_path="create-post", url_name="create-post")
+    def create_post(self, request): 
+        authenticated_user = request.user
+        payload = request.data
+        formfiles = request.FILES
+
+        with transaction.atomic():
+
+            post = payload.get('post')
+            savedPost = models.Posts.objects.create(
+                candidate=authenticated_user,
+                post=post
+            )
+
+            if formfiles:
+                
+                for f in request.FILES.getlist('document'):
+                    original_file_name = f.name
+
+                    ext = original_file_name.split('.')[1].strip().lower()
+                    exts = ['jpeg','jpg','png']
+
+                    if ext not in exts:
+                        return Response({"details": "Please upload a picture!"}, status=status.HTTP_400_BAD_REQUEST)
+                    
+                    models.PostImages.objects.create(
+                        post=savedPost,
+                        image=f
+                    )
+            return Response("success", status=status.HTTP_200_OK)
+
+
+    @action(methods=["POST"], detail=False, url_path="create-comment", url_name="create-comment")
+    def create_comment(self, request): 
+        authenticated_user = request.user
+        payload = request.data
+
+        to_exclude = ('id','commentor','status','date_created')
+        GenericSerializer = serializers.createGenericSerializer(models.PostCommentChildren,to_exclude)
+        serializer = GenericSerializer(data=payload, many=True) 
+
+        if serializer.is_valid():
+            with transaction.atomic():
+
+                comment = payload.get('comment')
+                post_id = payload.get('post_id')
+
+                post = models.Posts.objects.get(id=post_id)
+
+                models.PostCommentChildren.objects.create(
+                    post=post,
+                    comment=comment,
+                    commentor=authenticated_user
+                )
+
+                return Response("success", status=status.HTTP_200_OK)
+        return Response({'details':serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["POST"], detail=False, url_path="create-comment-child", url_name="create-comment-child")
+    def create_comment_child(self, request): 
+        authenticated_user = request.user
+        payload = request.data
+
+        to_exclude = ('id','commentor','status','date_created')
+        GenericSerializer = serializers.createGenericSerializer(models.PostCommentChildren,to_exclude)
+        serializer = GenericSerializer(data=payload, many=True) 
+
+        if serializer.is_valid():
+            with transaction.atomic():
+
+                comment = payload.get('comment_id')
+                child = payload.get('child_comment')
+
+                commentInstance = models.PostComments.objects.get(id=comment)
+
+                models.PostCommentChildren.objects.create(
+                    comment=commentInstance,
+                    child=child,
+                    commentor=authenticated_user
+                )
+
+                return Response("success", status=status.HTTP_200_OK)
+        return Response({'details':serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["POST"], detail=False, url_path="delete-post", url_name="delete-post")
+    def delete_post(self, request):    
+        request_id = request.query_params.get('request_id')        
+        try:
+            post = models.Posts.objects.get(id=request_id)
+            post.status = False
+            post.save()            
+            return Response("success", status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(e)
+            return Response({'details':'Error deleting post'},status=status.HTTP_400_BAD_REQUEST)
+
+    @action(methods=["POST"], detail=False, url_path="delete-comment", url_name="delete-comment")
+    def delete_comment(self, request):    
+        request_id = request.query_params.get('request_id')        
+        try:
+            comment = models.PostComments.objects.get(id=request_id)
+            comment.status = False
+            comment.save()            
+            return Response("success", status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(e)
+            return Response({'details':'Error deleting comment'},status=status.HTTP_400_BAD_REQUEST)
+
+    @action(methods=["POST"], detail=False, url_path="delete-comment-child", url_name="delete-comment-child")
+    def delete_comment_child(self, request):    
+        request_id = request.query_params.get('request_id')        
+        try:
+            comment = models.PostCommentChildren.objects.get(id=request_id)
+            comment.status = False
+            comment.save()            
+            return Response("success", status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(e)
+            return Response({'details':'Error deleting comment'},status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["GET"], detail=False, url_path="fetch-posts", url_name="fetch-posts")
+    def fetch_posts(self, request):
+        try:
+            posts = models.Posts.objects.all().order_by('date_created').exclude(status=False)
+
+            serializer = serializers.FetchPostSerializer(posts, many=True)   
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            logger.error(e)
+            return Response({'details':'Error Fetching Posts'},status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["POST"], detail=False, url_path="create-like", url_name="create-like")
+    def create_like(self, request): 
+        authenticated_user = request.user
+        payload = request.data
+
+        with transaction.atomic():
+            post_id = payload.get('post_id')
+            if post_id is None:
+                return Response({'details':'Error performing request'},status=status.HTTP_400_BAD_REQUEST)
+
+            is_liked = models.PostLikes.objects.filter(post=post_id,liker=authenticated_user)
+            if is_liked:
+                post = is_liked.first()
+                post.delete()
+            else:
+                post = models.Posts.objects.get(id=post_id)
+                models.PostLikes.objects.create(
+                    post=post,
+                    liker=authenticated_user
+                )
+            return Response('success', status=status.HTTP_200_OK)
+
+
+
+    @action(methods=["POST"], detail=False, url_path="create-seen", url_name="create-seen")
+    def create_seen(self, request): 
+        authenticated_user = request.user
+        payload = request.data
+
+        with transaction.atomic():
+            post_id = payload.get('post_id')
+            if post_id is None:
+                return Response({'details':'Error performing request'},status=status.HTTP_400_BAD_REQUEST)
+
+            is_seen = models.PostSeen.objects.filter(post=post_id,liker=authenticated_user).exists()
+            if not is_seen:
+                post = models.Posts.objects.get(id=post_id)
+                models.PostSeen.objects.create(
+                    post=post,
+                    user=authenticated_user
+                )
+            return Response('success', status=status.HTTP_200_OK)
+
+
+
+        
+
