@@ -72,7 +72,7 @@ class PostImages(models.Model):
 class PostComments(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     commentor = models.ForeignKey(
-       User, on_delete=models.CASCADE, related_name="commentor_comment"
+       User, on_delete=models.CASCADE, related_name="commentor_comment", null=True
     )
     post = models.ForeignKey(
        Posts, on_delete=models.CASCADE, related_name="post_comment"
@@ -91,7 +91,7 @@ class PostComments(models.Model):
 class PostCommentChildren(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     commentor = models.ForeignKey(
-       User, on_delete=models.CASCADE, related_name="commentor_comment"
+       User, on_delete=models.CASCADE, related_name="commentor_comment_child", null=True
     )
     comment = models.ForeignKey(
        PostComments, on_delete=models.CASCADE, related_name="post_comment"
