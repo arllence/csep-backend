@@ -303,7 +303,7 @@ class VotingViewSet(viewsets.ModelViewSet):
     @action(methods=["GET"], detail=False, url_path="fetch-posts", url_name="fetch-posts")
     def fetch_posts(self, request):
         try:
-            posts = models.Posts.objects.all().order_by('date_created').exclude(status=False)
+            posts = models.Posts.objects.all().order_by('-date_created').exclude(status=False)
 
             serializer = serializers.FetchPostSerializer(posts, many=True,context={"user_id":request.user.id})   
             return Response(serializer.data, status=status.HTTP_200_OK)
