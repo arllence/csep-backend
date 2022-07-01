@@ -1,5 +1,6 @@
 import json
 import logging
+from multiprocessing import context
 from user_manager.models import Document
 from rest_framework.views import APIView
 from . import models
@@ -180,13 +181,13 @@ class VotingViewSet(viewsets.ModelViewSet):
         formfiles = request.FILES
 
         with transaction.atomic():
-
+            sid = transaction.savepoint()
             post = payload.get('post')
             savedPost = models.Posts.objects.create(
                 candidate=authenticated_user,
                 post=post
             )
-
+            
             if formfiles:
                 
                 for f in request.FILES.getlist('document'):
@@ -196,6 +197,7 @@ class VotingViewSet(viewsets.ModelViewSet):
                     exts = ['jpeg','jpg','png']
 
                     if ext not in exts:
+                        transaction.savepoint_rollback(sid)
                         return Response({"details": "Please upload a picture!"}, status=status.HTTP_400_BAD_REQUEST)
                     
                     models.PostImages.objects.create(
@@ -209,20 +211,21 @@ class VotingViewSet(viewsets.ModelViewSet):
     def create_comment(self, request): 
         authenticated_user = request.user
         payload = request.data
+        print(payload)
 
         to_exclude = ('id','commentor','status','date_created')
-        GenericSerializer = serializers.createGenericSerializer(models.PostCommentChildren,to_exclude)
-        serializer = GenericSerializer(data=payload, many=True) 
+        GenericSerializer = serializers.createGenericSerializer(models.PostComments,to_exclude)
+        serializer = GenericSerializer(data=payload, many=False) 
 
         if serializer.is_valid():
             with transaction.atomic():
 
                 comment = payload.get('comment')
-                post_id = payload.get('post_id')
+                post_id = payload.get('post')
 
                 post = models.Posts.objects.get(id=post_id)
 
-                models.PostCommentChildren.objects.create(
+                models.PostComments.objects.create(
                     post=post,
                     comment=comment,
                     commentor=authenticated_user
@@ -236,16 +239,17 @@ class VotingViewSet(viewsets.ModelViewSet):
     def create_comment_child(self, request): 
         authenticated_user = request.user
         payload = request.data
+        print(payload)
 
         to_exclude = ('id','commentor','status','date_created')
         GenericSerializer = serializers.createGenericSerializer(models.PostCommentChildren,to_exclude)
-        serializer = GenericSerializer(data=payload, many=True) 
+        serializer = GenericSerializer(data=payload, many=False) 
 
         if serializer.is_valid():
             with transaction.atomic():
 
-                comment = payload.get('comment_id')
-                child = payload.get('child_comment')
+                comment = payload.get('comment')
+                child = payload.get('child')
 
                 commentInstance = models.PostComments.objects.get(id=comment)
 
@@ -301,7 +305,7 @@ class VotingViewSet(viewsets.ModelViewSet):
         try:
             posts = models.Posts.objects.all().order_by('date_created').exclude(status=False)
 
-            serializer = serializers.FetchPostSerializer(posts, many=True)   
+            serializer = serializers.FetchPostSerializer(posts, many=True,context={"user_id":request.user.id})   
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
             print(e)

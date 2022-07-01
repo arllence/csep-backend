@@ -67,14 +67,42 @@ class FetchCandidatePositionSerializer(serializers.ModelSerializer):
         model = models.CandidatePosition
         fields = '__all__'
 
+
+class PostCommentChildrenSerializer(serializers.ModelSerializer):
+    commentor = UsersSerializer()
+    profile_picture = serializers.SerializerMethodField('get_profile_picture')
+
+    def get_profile_picture(self, obj):
+        try:
+            profile = ProfilePicture.objects.filter(user=obj.commentor_id, status=True).first()
+            serializer = ProfilePictureSerializer(profile, many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+
+    class Meta:
+        model = models.PostCommentChildren
+        fields = '__all__'
+
 class PostCommentsSerializer(serializers.ModelSerializer):
+    commentor = UsersSerializer()
     children = serializers.SerializerMethodField('get_children')
+    profile_picture = serializers.SerializerMethodField('get_profile_picture')
 
     def get_children(self, obj):
         try:
-            comment = models.PostCommentChildren.objects.filter(post=obj, status=True)
-            commentSerializer = getGenericSerializer(models.PostCommentChildren)
-            serializer = commentSerializer(comment, many=True)
+            comment = models.PostCommentChildren.objects.filter(comment=obj, status=True)
+            serializer = PostCommentChildrenSerializer(comment, many=True)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+
+    def get_profile_picture(self, obj):
+        try:
+            profile = ProfilePicture.objects.filter(user=obj.commentor_id, status=True).first()
+            serializer = ProfilePictureSerializer(profile, many=False)
             return serializer.data
         except Exception as e:
             print(e)
@@ -89,9 +117,9 @@ class FetchPostSerializer(serializers.ModelSerializer):
     post_image = serializers.SerializerMethodField('get_post_image')
     profile_picture = serializers.SerializerMethodField('get_profile_picture')
     post_comments = serializers.SerializerMethodField('get_post_comments')
-    post_comment_children = serializers.SerializerMethodField('get_post_comment_children')
     post_likes = serializers.SerializerMethodField('get_post_likes')
     post_seen = serializers.SerializerMethodField('get_post_seen')
+    have_liked = serializers.SerializerMethodField('get_have_liked')
 
     def get_profile_picture(self, obj):
         try:
@@ -112,7 +140,7 @@ class FetchPostSerializer(serializers.ModelSerializer):
             print(e)
             return []
 
-    def get_post_comment(self, obj):
+    def get_post_comments(self, obj):
         try:
             comment = models.PostComments.objects.filter(post=obj, status=True)
             serializer = PostCommentsSerializer(comment, many=True)
@@ -123,15 +151,24 @@ class FetchPostSerializer(serializers.ModelSerializer):
     
     def get_post_likes(self, obj):
         try:
-            likes = models.PostLikes.objects.filter(post=obj, status=True).count()
+            likes = models.PostLikes.objects.filter(post=obj).count()
             return likes
         except Exception as e:
             print(e)
             return 0
 
+    def get_have_liked(self, obj):
+        try:
+            user_id = str(self.context["user_id"])
+            liked = models.PostLikes.objects.filter(post=obj,liker=user_id).exists()
+            return liked
+        except Exception as e:
+            print(e)
+            return False
+
     def get_post_seen(self, obj):
         try:
-            seen = models.PostSeen.objects.filter(post=obj, status=True).count()
+            seen = models.PostSeen.objects.filter(post=obj).count()
             return seen
         except Exception as e:
             print(e)

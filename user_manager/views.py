@@ -876,6 +876,18 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.error(e)
             return Response({'details':'Error Geting Hobbies'},status=status.HTTP_400_BAD_REQUEST)
+
+    
+    @action(methods=["GET"], detail=False, url_path="get-profile-picture", url_name="get-profile-picture")
+    def get_profile_picture(self, request):
+        authenticated_user = request.user
+        try:
+            data = models.ProfilePicture.objects.filter(user=authenticated_user, status=True).order_by('-date_created').first()
+            serializer = serializers.ProfilePictureSerializer(data, many=False)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(e)
+            return Response({'details':'Error Geting Profile Picture'},status=status.HTTP_400_BAD_REQUEST)
   
 
 
