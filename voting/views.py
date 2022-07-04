@@ -101,6 +101,19 @@ class VotingViewSet(viewsets.ModelViewSet):
     @action(methods=["GET"], detail=False, url_path="fetch-candidate-positions", url_name="fetch-candidate-positions")
     def fetch_candidate_positions(self, request):
         try:
+            candidates = models.CandidatePosition.objects.filter(application_status="APPROVED").order_by('date_created')
+
+            serializer = serializers.FetchCandidatePositionSerializer(candidates, many=True)   
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            logger.error(e)
+            return Response({'details':'Error Fetching Candidates'},status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["GET"], detail=False, url_path="fetch-all-candidate-positions", url_name="fetch-all-candidate-positions")
+    def fetch_all_candidate_positions(self, request):
+        try:
             candidates = models.CandidatePosition.objects.all().order_by('date_created')
 
             serializer = serializers.FetchCandidatePositionSerializer(candidates, many=True)   
