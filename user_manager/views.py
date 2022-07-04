@@ -224,7 +224,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                     "email": email,
                     "first_name": first_name,
                     "last_name": last_name,
-                    "registration_no": registration_no.upper(),
+                    "registration_no": registration_no,
                     "newsletter": newsletter,
                     "accepted_terms": accepted_terms,
                     "is_active": True,
@@ -268,6 +268,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
     @action(methods=["POST"], detail=False, url_path="verify-email", url_name="verify-email")
     def verify_email(self, request):
         payload = request.data
+        print(payload)
 
         serializer = serializers.OtpSerializer(data=payload, many=False)
 
@@ -277,15 +278,21 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                 email = payload['email']
                 try:
                     check = models.OtpCodes.objects.get(otp=otp)
-                    user = get_user_model().objects.get(email=email)
+                except Exception as e:
+                    logger.error(e)
+                    return Response({'details':
+                                     'Incorrect OTP Code'},status=status.HTTP_400_BAD_REQUEST)
+                try:
+                    user = get_user_model().objects.get(registration_no=email)
                     user.verified_email = True
                     user.save()
                     check.delete()
                     return Response('Success', status=status.HTTP_200_OK)
                 except Exception as e:
+                    print(e)
                     logger.error(e)
                     return Response({'details':
-                                     'Incorrect OTP Code'},status=status.HTTP_400_BAD_REQUEST)
+                                     'Incorrect User'},status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response({'details':serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
