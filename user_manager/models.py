@@ -8,6 +8,7 @@ from django.conf import settings
 from .managers import UserManager
 from django.contrib.auth.models import Group, PermissionsMixin
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
+from PIL import Image
 
 from django_countries.fields import CountryField
 
@@ -146,6 +147,14 @@ class ProfilePicture(models.Model):
     original_file_name = models.CharField(max_length=100)
     status = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        super().save()
+        img = Image.open(self.profile_picture.path)
+        # width, height = img.size  # Get dimensions
+        size = (300,300)
+        image = img.resize(size, Image.ANTIALIAS)
+        image.save(self.profile_picture.path)
 
     class Meta:
         app_label = "user_manager"

@@ -140,3 +140,62 @@ class PostSeen(models.Model):
     def __str__(self):
         return str(self.post)
 
+
+class VoterTokens(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    token = models.IntegerField()
+    status = models.BooleanField(default=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "voter_tokens"
+
+    def __str__(self):
+        return str(self.token)
+
+class IsVoter(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    voter = models.ForeignKey(
+       User, on_delete=models.CASCADE, related_name="is_voter", null=True
+    )
+    token = models.IntegerField()
+    status = models.BooleanField(default=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "is_voter"
+
+    def __str__(self):
+        return str(self.voter.registration_no)
+
+
+class Votes(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    voter = models.ForeignKey(
+       User, on_delete=models.CASCADE, related_name="voter", null=True
+    )
+    candidate = models.ForeignKey(
+       User, on_delete=models.CASCADE, related_name="candidate", null=True
+    )
+    position = models.name = models.CharField(max_length=250)
+    status = models.BooleanField(default=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "votes"
+
+    def __str__(self):
+        return str(self.candidate.registration_no)
+
+class HasVoted(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    voter = models.ForeignKey(
+       User, on_delete=models.CASCADE, related_name="has_voted", null=True
+    )
+    date_created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "has_voted"
+
+    def __str__(self):
+        return str(self.voter.registration_no)

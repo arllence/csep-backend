@@ -933,46 +933,47 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                 not_uploaded_files = []
                 for f in request.FILES.getlist('document'):
                     original_file_name = f.name
-                    if document_type == 'profile_picture':
-                        original_file_exists = models.ProfilePicture.objects.filter(
-                            original_file_name=original_file_name).exists()
-                    else:
-                        original_file_exists = models.Document.objects.filter(
-                            original_file_name=original_file_name).exists()
-                    if original_file_exists:
-                        upload_status = False
-                        not_uploaded_files.append(
-                            {"name": str(original_file_name), "reason": "File already exists"})
+                    # if document_type == 'profile_picture':
+                    #     original_file_exists = models.ProfilePicture.objects.filter(
+                    #         original_file_name=original_file_name).exists()
+                    # else:
+                    #     original_file_exists = models.Document.objects.filter(
+                    #         original_file_name=original_file_name).exists()
+                    # if original_file_exists:
+                    #     upload_status = False
+                    #     not_uploaded_files.append(
+                    #         {"name": str(original_file_name), "reason": "File already exists"})
+                    #     pass
 
-                    else:
-                        uploaded_files.append({"name": str(original_file_name)})
-                        upload_status = True
-                        loggedin_user = request.user
-                        if  document_type == 'profile_picture':
-                            old_pictures = models.ProfilePicture.objects.filter(user=auth_user.id)
-                            if old_pictures:
-                                for picture in old_pictures:
-                                    picture.status = False
-                                    picture.save()
-                            newinstance = models.ProfilePicture.objects.create(
-                                profile_picture=f, user=loggedin_user, original_file_name=original_file_name, status=True)
-                            url = newinstance.profile_picture.url
-                            info = {
-                                    "url_link" : url
-                                }
-                        else:                            
-                            newinstance = models.Document.objects.create(
-                                document=f, user=loggedin_user, original_file_name=original_file_name, document_type=document_type)
-                            url = newinstance.document.url
-                            doc_id = newinstance.id
-                            info = {
-                                "url_link" : url,
-                                "doc_id": doc_id
+                    # else:
+                    uploaded_files.append({"name": str(original_file_name)})
+                    upload_status = True
+                    loggedin_user = request.user
+                    if  document_type == 'profile_picture':
+                        old_pictures = models.ProfilePicture.objects.filter(user=auth_user.id)
+                        if old_pictures:
+                            for picture in old_pictures:
+                                picture.status = False
+                                picture.save()
+                        newinstance = models.ProfilePicture.objects.create(
+                            profile_picture=f, user=loggedin_user, original_file_name=original_file_name, status=True)
+                        url = newinstance.profile_picture.url
+                        info = {
+                                "url_link" : url
                             }
-                if upload_status is True:
+                    else:                            
+                        newinstance = models.Document.objects.create(
+                            document=f, user=loggedin_user, original_file_name=original_file_name, document_type=document_type)
+                        url = newinstance.document.url
+                        doc_id = newinstance.id
+                        info = {
+                            "url_link" : url,
+                            "doc_id": doc_id
+                        }
+                # if upload_status is True:
                     return Response(info, status=status.HTTP_200_OK)
-                else:
-                    return Response({"details": "File Already Exists"}, status=status.HTTP_400_BAD_REQUEST)
+                # else:
+                #     return Response({"details": "File Already Exists"}, status=status.HTTP_400_BAD_REQUEST)
 
         else:
             return Response({"details": "Invalid file passed"}, status=status.HTTP_400_BAD_REQUEST)

@@ -1,6 +1,7 @@
 import json
 import logging
 from multiprocessing import context
+import random
 from user_manager.models import Document
 from rest_framework.views import APIView
 from . import models
@@ -393,6 +394,132 @@ class VotingViewSet(viewsets.ModelViewSet):
             return Response('success', status=status.HTTP_200_OK)
 
 
+    @action(methods=["POST"], detail=False, url_path="create-token", url_name="create-token")
+    def create_token(self, request): 
+        authenticated_user = request.user
+        payload = request.data
+
+        total_required = payload.get('total_required')
+        if total_required is None:
+            return Response({'details':'Number of Tokens Required'},status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            for x in range(0, int(total_required)):
+                token = random.randint(1000,100000) 
+                models.VoterTokens.objects.create(
+                    token=token,
+                )
+
+            return Response('success', status=status.HTTP_200_OK)
+
+
+    @action(methods=["POST"], detail=False, url_path="create-voter-token", url_name="create-voter-token")
+    def create_voter_token(self, request): 
+        authenticated_user = request.user
+        payload = request.data
+
+        token = payload.get('token')
+        if token is None:
+            return Response({'details':'Code Required'},status=status.HTTP_400_BAD_REQUEST)
+
+        is_valid = models.VoterTokens.objects.filter(token=token)
+        if not is_valid:
+            return Response({'details':'Invalid Code'},status=status.HTTP_400_BAD_REQUEST)
+
+        stored_token = is_valid.first()
+
+        models.IsVoter.objects.create(
+            voter=authenticated_user,
+            token=token
+        )
+
+        stored_token.delete()
+
+        return Response('success', status=status.HTTP_200_OK)
+
+    
+    @action(methods=["GET"], detail=False, url_path="check-voter-token", url_name="check-voter-token")
+    def check_voter_token(self, request): 
+        authenticated_user = request.user
+
+        is_voter = models.IsVoter.objects.filter(voter=authenticated_user).exists()
+        
+        return Response({'status': is_voter}, status=status.HTTP_200_OK)
+
+
+    @action(methods=["POST"], detail=False, url_path="award-token", url_name="award-token")
+    def award_token(self, request): 
+        authenticated_user = request.user
+        payload = request.data
+        # models.VoterTokens.objects.all().delete()
+
+        target = payload.get('target')
+        if target is None:
+            return Response({'details':'User Required'},status=status.HTTP_400_BAD_REQUEST)
+
+        def processor(user):
+                has_token = models.IsVoter.objects.filter(voter=user.id)
+                if has_token:
+                    token = has_token.first().token
+                else:
+                    token = random.randint(1000,100000) 
+                    models.VoterTokens.objects.create(
+                        token=token,
+                    )
+
+                recipient = user.first_name
+                subject = "CSEP Voter Token"
+                email = user.email
+                raw_msg = f"""
+                    Your voter code is: {token} <br>**Vote wisely**
+                """
+
+                message_template = read_template("general.html")
+                body = message_template.substitute(NAME=recipient,MESSAGE=raw_msg,LINK=settings.FRONTEND)
+                user_util.sendmail(email,subject,body)
+
+        if target == 'all':
+            target_groups = ('VOTER','CANDIDATE')
+            users = get_user_model().objects.filter(groups__name__in=target_groups)
+            print(users)
+            for user in users:
+                processor(user)
+        else:
+            user = get_user_model().objects.filter(registration_no=target)
+
+            if user:
+                processor(user.first())
+            else:
+                return Response({'details':'Unknown User'},status=status.HTTP_400_BAD_REQUEST)
+
+
+        return Response('success', status=status.HTTP_200_OK)
+
+
+    @action(methods=["POST"], detail=False, url_path="create-vote", url_name="create-vote")
+    def create_vote(self, request): 
+        authenticated_user = request.user
+        payload = request.data
+
+        for item in payload:
+            item['candidate'] = get_user_model().objects.get(id=item['candidate'])
+            item.update({"voter": authenticated_user})
+            models.Votes.objects.create(
+                **item
+            )
+        models.HasVoted.objects.create(
+            voter=authenticated_user,
+        )
+        return Response('success', status=status.HTTP_200_OK)
+
+
+    @action(methods=["GET"], detail=False, url_path="check-has-voted", url_name="check-has-voted")
+    def check_has_voted(self, request): 
+        authenticated_user = request.user
+
+        is_voter = models.HasVoted.objects.filter(voter=authenticated_user).exists()
+        
+        return Response({'status': is_voter}, status=status.HTTP_200_OK)
 
         
 
