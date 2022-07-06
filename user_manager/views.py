@@ -169,7 +169,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                 accepted_terms = payload['accepted_terms']
                 password = payload['password']
                 confirm_password = payload['confirm_password']
-                userexists = get_user_model().objects.filter(email=email).exists()
+                userexists = get_user_model().objects.filter(Q(email=email) | Q(registration_no=registration_no)).exists()
 
                 if userexists:
                     return Response({'details': 'User With Credentials Already Exist'}, status=status.HTTP_400_BAD_REQUEST)
@@ -933,19 +933,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                 not_uploaded_files = []
                 for f in request.FILES.getlist('document'):
                     original_file_name = f.name
-                    # if document_type == 'profile_picture':
-                    #     original_file_exists = models.ProfilePicture.objects.filter(
-                    #         original_file_name=original_file_name).exists()
-                    # else:
-                    #     original_file_exists = models.Document.objects.filter(
-                    #         original_file_name=original_file_name).exists()
-                    # if original_file_exists:
-                    #     upload_status = False
-                    #     not_uploaded_files.append(
-                    #         {"name": str(original_file_name), "reason": "File already exists"})
-                    #     pass
 
-                    # else:
                     uploaded_files.append({"name": str(original_file_name)})
                     upload_status = True
                     loggedin_user = request.user
@@ -1137,56 +1125,7 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
         record_info = serializers.RoleSerializer(role, many=True)
         return Response(record_info.data, status=status.HTTP_200_OK)
     
-    @action(methods=["GET"], detail=False, url_path="fetch-roles", url_name="fetch-roles")
-    def fetch_roles(self, request):
-        stage = request.query_params.get('role')
-
-        if stage == 'I' or stage == 'II':
-            role_name = 'JUNIOR_OFFICER'
-        elif stage == 'III':
-            role_name = 'INTERNAL_EVALUATOR'
-        elif stage == 'IV':
-            role_name = 'SUBJECT_MATTER_EVALUATOR'
-        elif stage == 'V':
-            role_name = 'EXTERNAL_EVALUATOR'
-        elif stage == 'VI':
-            role_name = 'CHIEF_EVALUATOR'
-        else:
-            return Response({"details": "Unknown Role"}, status=status.HTTP_400_BAD_REQUEST)
-
-        if stage == 'all':
-            role = Group.objects.filter(Q(name='SUBJECT_MATTER_EVALUATOR') | Q(name='EXTERNAL_EVALUATOR') | Q(name='CHIEF_EVALUATOR'))
-        else:
-            role = Group.objects.filter(name=role_name)
-
-        record_info = serializers.RoleSerializer(role, many=True)
-        return Response(record_info.data, status=status.HTTP_200_OK)
-
-
-    @action(methods=["GET"], detail=False, url_path="re-fetch-roles", url_name="re-fetch-roles")
-    def refetch_roles(self, request):
-        stage = request.query_params.get('role')
-
-        if stage == 'I' or stage == 'II':
-            role_name = 'JUNIOR_OFFICER'
-        elif stage == 'IV':
-            role_name = 'INTERNAL_EVALUATOR'
-        elif stage == 'V':
-            role_name = 'SUBJECT_MATTER_EVALUATOR'
-        elif stage == 'VI':
-            role_name = 'EXTERNAL_EVALUATOR'
-        elif stage == 'VII':
-            role_name = 'CHIEF_EVALUATOR'
-        else:
-            return Response({"details": "Unknown Role"}, status=status.HTTP_400_BAD_REQUEST)
-
-        if stage == 'all':
-            role = Group.objects.filter(Q(name='SUBJECT_MATTER_EVALUATOR') | Q(name='EXTERNAL_EVALUATOR') | Q(name='CHIEF_EVALUATOR'))
-        else:
-            role = Group.objects.filter(name=role_name)
-
-        record_info = serializers.RoleSerializer(role, many=True)
-        return Response(record_info.data, status=status.HTTP_200_OK)
+ 
 
 
     @action(methods=["GET"], detail=False, url_path="list-user-roles", url_name="list-user-roles")

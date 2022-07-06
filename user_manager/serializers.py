@@ -59,11 +59,21 @@ class UsersSerializer(serializers.ModelSerializer):
     is_suspended = serializers.CharField()
     last_login = serializers.DateTimeField()
     user_groups = serializers.SerializerMethodField(read_only=True)
+    profile_picture = serializers.SerializerMethodField('get_profile_picture')
+
+    def get_profile_picture(self, obj):
+        try:
+            profile = models.ProfilePicture.objects.filter(user=obj, status=True).first()
+            serializer = ProfilePictureSerializer(profile, many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
 
     class Meta:
         model = get_user_model()
         fields = [
-            'id', 'email', 'first_name', 'last_name','registration_no', 'is_active', 'is_suspended','user_groups','date_created','last_login'
+            'id', 'email', 'first_name', 'last_name','registration_no', 'is_active', 'is_suspended','user_groups','date_created','last_login','profile_picture'
         ]
 
     def get_user_groups(self, obj):

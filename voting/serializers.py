@@ -68,6 +68,34 @@ class FetchCandidatePositionSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class FetchCandidateResultsSerializer(serializers.ModelSerializer):
+    candidate = UsersSerializer()
+    positionSerializer = getGenericSerializer(models.Positions)
+    position = positionSerializer()
+    profile_picture = serializers.SerializerMethodField('get_profile_picture')
+    results = serializers.SerializerMethodField('get_results')
+
+    def get_profile_picture(self, obj):
+        try:
+            profile = ProfilePicture.objects.filter(user=obj.candidate_id, status=True).first()
+            serializer = ProfilePictureSerializer(profile, many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+
+    def get_results(self, obj):
+        try:
+            count = models.Votes.objects.filter(candidate=obj.candidate_id, status=True).count()
+            return count
+        except Exception as e:
+            print(e)
+            return 0
+    class Meta:
+        model = models.CandidatePosition
+        fields = '__all__'
+
+
 class PostCommentChildrenSerializer(serializers.ModelSerializer):
     commentor = UsersSerializer()
     profile_picture = serializers.SerializerMethodField('get_profile_picture')

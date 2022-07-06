@@ -208,6 +208,32 @@ class VotingViewSet(viewsets.ModelViewSet):
             logger.error(e)
             return Response({'details':'Error Fetching Candidates'},status=status.HTTP_400_BAD_REQUEST)
 
+    
+    @action(methods=["GET"], detail=False, url_path="fetch-candidates-results", url_name="fetch-candidates-results")
+    def fetch_candidates_results(self, request):
+        try:
+            all_positions = []
+            positions = models.Positions.objects.all()
+
+            for position in positions:
+                all_positions.append(position.name)
+
+            all_candidates = []
+            
+            for position in all_positions:
+                candidates = models.CandidatePosition.objects.filter(position__name=position, application_status="APPROVED")
+                serializer = serializers.FetchCandidateResultsSerializer(candidates, many=True)  
+                candidates = serializer.data
+                candidates = sorted(list(candidates), key=lambda d: d['results'], reverse=True) 
+
+                all_candidates.append({"position":position,"candidates":candidates})
+             
+            return Response(all_candidates, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            logger.error(e)
+            return Response({'details':'Error Fetching Candidates'},status=status.HTTP_400_BAD_REQUEST)
+
 
     # POSTS
 
@@ -458,25 +484,25 @@ class VotingViewSet(viewsets.ModelViewSet):
             return Response({'details':'User Required'},status=status.HTTP_400_BAD_REQUEST)
 
         def processor(user):
-                has_token = models.IsVoter.objects.filter(voter=user.id)
-                if has_token:
-                    token = has_token.first().token
-                else:
-                    token = random.randint(1000,100000) 
-                    models.VoterTokens.objects.create(
-                        token=token,
-                    )
+            has_token = models.IsVoter.objects.filter(voter=user.id)
+            if has_token:
+                token = has_token.first().token
+            else:
+                token = random.randint(1000,100000) 
+                models.VoterTokens.objects.create(
+                    token=token,
+                )
 
-                recipient = user.first_name
-                subject = "CSEP Voter Token"
-                email = user.email
-                raw_msg = f"""
-                    Your voter code is: {token} <br>**Vote wisely**
-                """
+            recipient = user.first_name
+            subject = "CSEP Voter Token"
+            email = user.email
+            raw_msg = f"""
+                Your voter code is: {token} <br>**Vote wisely**
+            """
 
-                message_template = read_template("general.html")
-                body = message_template.substitute(NAME=recipient,MESSAGE=raw_msg,LINK=settings.FRONTEND)
-                user_util.sendmail(email,subject,body)
+            message_template = read_template("general.html")
+            body = message_template.substitute(NAME=recipient,MESSAGE=raw_msg,LINK=settings.FRONTEND)
+            user_util.sendmail(email,subject,body)
 
         if target == 'all':
             target_groups = ('VOTER','CANDIDATE')
@@ -486,7 +512,7 @@ class VotingViewSet(viewsets.ModelViewSet):
                 processor(user)
         else:
             user = get_user_model().objects.filter(registration_no=target)
-
+            print(user)
             if user:
                 processor(user.first())
             else:
@@ -516,8 +542,11 @@ class VotingViewSet(viewsets.ModelViewSet):
     @action(methods=["GET"], detail=False, url_path="check-has-voted", url_name="check-has-voted")
     def check_has_voted(self, request): 
         authenticated_user = request.user
-
-        is_voter = models.HasVoted.objects.filter(voter=authenticated_user).exists()
+        roles = user_util.fetchusergroups(authenticated_user.id)
+        if 'USER_MANAGER' in roles:
+            is_voter = True
+        else:
+            is_voter = models.HasVoted.objects.filter(voter=authenticated_user).exists()
         
         return Response({'status': is_voter}, status=status.HTTP_200_OK)
 
