@@ -55,23 +55,12 @@ class UserInfo(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="user_profile_info"
     )
-    profile_picture = models.ImageField(upload_to='profile_images', blank=True)
     phone = models.CharField(max_length=50, null=True, blank=True)
-    id_number = models.CharField(max_length=50, null=True, blank=True)
     gender = models.CharField(max_length=50)
     bio = models.TextField()
     age_group = models.CharField(max_length=100)
     disability = models.TextField()
-
-    country = models.CharField(max_length=100)
-    county = models.CharField(max_length=100)
-    city = models.CharField(max_length=100)
-    physical_address = models.CharField(max_length=100)
-    state = models.CharField(max_length=100)
-    postal_code = models.CharField(max_length=100)
-
     education_level = models.CharField(max_length=100, null=True, blank=True)
-    employment_status = models.CharField(max_length=100)
     date_created = models.DateTimeField(auto_now_add=True)
 
     
@@ -89,8 +78,6 @@ class Education(models.Model):
     )
     institution_name = models.CharField(max_length=255)
     course_name = models.CharField(max_length=255, null=True, blank=True)
-    grade = models.CharField(max_length=255, null=True, blank=True)
-    study_summary = models.TextField(null=True, blank=True)
     date_created = models.DateTimeField(auto_now_add=True)
     
     class Meta:

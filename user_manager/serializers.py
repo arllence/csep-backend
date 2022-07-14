@@ -191,14 +191,8 @@ class CreateProfileSerializer(serializers.Serializer):
     age_group = serializers.CharField()
     gender = serializers.CharField()
     disability = serializers.CharField()
-    country = serializers.CharField()
     bio = serializers.CharField()
-    state = serializers.CharField()
-    city = serializers.CharField()
-    address = serializers.CharField() 
-    postal = serializers.CharField()
-    # level_of_education = serializers.CharField()
-    employment = serializers.CharField()
+    level_of_education = serializers.CharField()
     skills = serializers.ListField()
 
 

@@ -523,34 +523,22 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                 last_name = payload['last_name'].capitalize()
                 phone = str(payload['phone'])
                 phonecode = payload['phonecode']
-                # id_number = payload['id_number']
                 gender = payload['gender']
                 age_group = payload['age_group']
                 disability = payload['disability']
-                country = payload['country']
                 bio = payload['bio']
-                state = payload['state'].capitalize()
-                city = payload['city'].capitalize()
-                address = payload['address']
-                postal = payload['postal']
-                employment = payload['employment']
                 skills = payload['skills']
                 try:
                     level_of_education = payload['level_of_education']
-                    # print(level_of_education)
                 except Exception as e:
-                    level_of_education = None
                     logger.error("level_of_education: ",e)
-                    # print("level_of_education: ",e)
+                    return Response({'details':"Level of Education Required!"}, status=status.HTTP_400_BAD_REQUEST)
                 try:
                     institution_name = payload['institution_name']
                     course_name = payload['course_name']
-                    study_summary = payload['study_summary']
                 except Exception as e:
-                    institution_name = None
-                    course_name = None
-                    study_summary = None
                     logger.error(e)
+                    return Response({'details':"Institution Details Required!"}, status=status.HTTP_400_BAD_REQUEST)
                 
 
                 authenticated_user.first_name = first_name
@@ -581,11 +569,10 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                 education = {
                     "user": authenticated_user,
                     "institution_name" : institution_name,
-                    "course_name" : course_name,
-                    "study_summary" : study_summary,
+                    "course_name" : course_name
                 }
 
-                is_underage = False
+
                 if age_group == "14-17":
                     is_underage = True
                     return Response({'details':"Sorry! You are too young to participate on this platform!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -595,17 +582,10 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                 if user_exists:
                     user_profile = models.UserInfo.objects.get(user=authenticated_user)
                     user_profile.phone = phone
-                    # user_profile.id_number = id_number
                     user_profile.age_group = age_group
                     user_profile.disability = disability
-                    user_profile.country = country
                     user_profile.bio = bio
-                    user_profile.state = state
-                    user_profile.city = city
-                    user_profile.physical_address = address
-                    user_profile.postal_code = postal
                     user_profile.education_level = level_of_education
-                    user_profile.employment = employment
 
                     user_profile.save()
 
@@ -628,8 +608,6 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                         education = models.Education.objects.get(user=authenticated_user)
                         education.institution_name = institution_name 
                         education.course_name = course_name
-                        # education.grade = grade
-                        education.study_summary = study_summary
                         education.save()
                     except Exception as e:
                         logger.error(e)
@@ -642,17 +620,10 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                         "user": authenticated_user,
                         "gender": gender,
                         "phone": phone,
-                        # "id_number": id_number,
                         "age_group": age_group,
                         "disability": disability,
-                        "country": country,
                         "bio": bio,
-                        "state": state,
-                        "city": city,
-                        "physical_address": address,
-                        "postal_code": postal,
-                        "education_level": level_of_education,
-                        "employment_status": employment
+                        "education_level": level_of_education
                     }
                     models.UserInfo.objects.create(**profile)
                     
