@@ -10,7 +10,6 @@ from django.contrib.auth.models import Group, PermissionsMixin
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 from PIL import Image
 
-from django_countries.fields import CountryField
 
 media_mode = settings.MAINMEDIA
 smb_system_storage = smb_storage.SMBStorage()
