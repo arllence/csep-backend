@@ -523,34 +523,22 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                 last_name = payload['last_name'].capitalize()
                 phone = str(payload['phone'])
                 phonecode = payload['phonecode']
-                # id_number = payload['id_number']
                 gender = payload['gender']
                 age_group = payload['age_group']
                 disability = payload['disability']
-                country = payload['country']
                 bio = payload['bio']
-                state = payload['state'].capitalize()
-                city = payload['city'].capitalize()
-                address = payload['address']
-                postal = payload['postal']
-                employment = payload['employment']
                 skills = payload['skills']
                 try:
                     level_of_education = payload['level_of_education']
-                    # print(level_of_education)
                 except Exception as e:
-                    level_of_education = None
                     logger.error("level_of_education: ",e)
-                    # print("level_of_education: ",e)
+                    return Response({'details':"Level of Education Required!"}, status=status.HTTP_400_BAD_REQUEST)
                 try:
                     institution_name = payload['institution_name']
                     course_name = payload['course_name']
-                    study_summary = payload['study_summary']
                 except Exception as e:
-                    institution_name = None
-                    course_name = None
-                    study_summary = None
                     logger.error(e)
+                    return Response({'details':"Institution Details Required!"}, status=status.HTTP_400_BAD_REQUEST)
                 
 
                 authenticated_user.first_name = first_name
@@ -581,11 +569,10 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                 education = {
                     "user": authenticated_user,
                     "institution_name" : institution_name,
-                    "course_name" : course_name,
-                    "study_summary" : study_summary,
+                    "course_name" : course_name
                 }
 
-                is_underage = False
+
                 if age_group == "14-17":
                     is_underage = True
                     return Response({'details':"Sorry! You are too young to participate on this platform!"}, status=status.HTTP_400_BAD_REQUEST)
@@ -595,17 +582,10 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                 if user_exists:
                     user_profile = models.UserInfo.objects.get(user=authenticated_user)
                     user_profile.phone = phone
-                    # user_profile.id_number = id_number
                     user_profile.age_group = age_group
                     user_profile.disability = disability
-                    user_profile.country = country
                     user_profile.bio = bio
-                    user_profile.state = state
-                    user_profile.city = city
-                    user_profile.physical_address = address
-                    user_profile.postal_code = postal
                     user_profile.education_level = level_of_education
-                    user_profile.employment = employment
 
                     user_profile.save()
 
@@ -628,8 +608,6 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                         education = models.Education.objects.get(user=authenticated_user)
                         education.institution_name = institution_name 
                         education.course_name = course_name
-                        # education.grade = grade
-                        education.study_summary = study_summary
                         education.save()
                     except Exception as e:
                         logger.error(e)
@@ -642,17 +620,10 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                         "user": authenticated_user,
                         "gender": gender,
                         "phone": phone,
-                        # "id_number": id_number,
                         "age_group": age_group,
                         "disability": disability,
-                        "country": country,
                         "bio": bio,
-                        "state": state,
-                        "city": city,
-                        "physical_address": address,
-                        "postal_code": postal,
-                        "education_level": level_of_education,
-                        "employment_status": employment
+                        "education_level": level_of_education
                     }
                     models.UserInfo.objects.create(**profile)
                     
@@ -1362,9 +1333,7 @@ class SuperUserViewSet(viewsets.ModelViewSet):
                 first_name = payload['first_name']
                 last_name = payload['last_name']
                 register_as = payload['role_name']
-                userexists = get_user_model().objects.filter(email=email).exists()   
-
-                evaluators = ['SUBJECT_MATTER_EVALUATOR','EXTERNAL_EVALUATOR']             
+                userexists = get_user_model().objects.filter(email=email).exists()            
 
                 if userexists:
                     return Response({'details': 'User With Credentials Already Exist'}, status=status.HTTP_400_BAD_REQUEST)
@@ -1385,6 +1354,7 @@ class SuperUserViewSet(viewsets.ModelViewSet):
                 hashed_pwd = make_password(password)
                 newuser = {
                     "email": email,
+                    "registration_no": email,
                     "first_name": first_name,
                     "last_name": last_name,
                     "register_as": register_as,
@@ -1395,23 +1365,20 @@ class SuperUserViewSet(viewsets.ModelViewSet):
                 create_user = get_user_model().objects.create(**newuser)
                 group_details.user_set.add(create_user)
 
-                if role in evaluators:
-                    role = role.split('_')
-                    role = " ".join(role)
-                    raw_msg = f"Thank you for accepting our invitation to be on our panel of {role}S.  Please click <a href='www.CSEP.org'>www.CSEP.org</a> to learn more about us.<br><br>\
-                    The evaluation process has been digitized for your convenience. Please click on <a href='https://portal-CSEP.org'>www.portal-CSEP.org</a> to log in and view the list of innovation  startups assigned to you.<br><br>\
-                    Our Innovations Manager will contact you shortly to schedule a training session to orient you to the evaluation platform and provide more details.<br><br>\
-                    <b><u>For more information and support please drop us an email innovation@CSEP.org</u></b>"
+                role = role.split('_')
+                role = " ".join(role)
+                raw_msg = f"You have been added to CSEP network as a {role}. Your password is: {password}. You are advised to change it immediately upon login.  Please click <a href='{settings.FRONTEND}'>www.CSEP.org</a> to learn more about us.<br><br>\
+                <b><u>For more information and support please drop us an email info@CSEP.org</u></b>"
 
-                    recipient = first_name
-                    subject = "Welcome To CSEP"
-                    email = email
+                recipient = first_name
+                subject = "Welcome To CSEP"
+                email = email
 
-                    message_template = read_template("general.html")
-                    body = message_template.substitute(NAME=recipient,MESSAGE=raw_msg,LINK=settings.FRONTEND)
+                message_template = read_template("general.html")
+                body = message_template.substitute(NAME=recipient,MESSAGE=raw_msg,LINK=settings.FRONTEND)
 
-                    # send email
-                    user_util.sendmail(email,subject,body)
+                # send email
+                user_util.sendmail(email,subject,body)
                 user_util.log_account_activity(
                     authenticated_user, create_user, "Account Creation",
                     "USER CREATED")
