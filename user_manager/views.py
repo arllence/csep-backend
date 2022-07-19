@@ -169,7 +169,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
                 accepted_terms = payload['accepted_terms']
                 password = payload['password']
                 confirm_password = payload['confirm_password']
-                userexists = get_user_model().objects.filter(Q(email=email) | Q(registration_no=registration_no)).exists()
+                userexists = get_user_model().objects.filter(Q(email=email) | Q(registration_no=registration_no) | Q(registration_no=registration_no.upper()) | Q(registration_no=registration_no.lower())).exists()
 
                 if userexists:
                     return Response({'details': 'User With Credentials Already Exist'}, status=status.HTTP_400_BAD_REQUEST)
