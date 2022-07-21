@@ -139,6 +139,12 @@ class PostCommentsSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.PostComments
         fields = '__all__'
+class NotificationsSerializer(serializers.ModelSerializer):  
+    recipient = UsersSerializer()
+    sender = UsersSerializer()
+    class Meta:
+        model = models.Notifications
+        fields = '__all__'
 
 class FetchPostSerializer(serializers.ModelSerializer):
     candidate = UsersSerializer()    

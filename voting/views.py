@@ -299,7 +299,7 @@ class VotingViewSet(viewsets.ModelViewSet):
                 
                 # save notification
                 if authenticated_user.id != post.candidate.id:
-                    notification = f"{authenticated_user.first_name} has commented on your post."
+                    notification = f"{authenticated_user.first_name} commented on your post."
                     models.Notifications.objects.create(sender=authenticated_user,recipient=post.candidate, notification=notification)
 
                 return Response("success", status=status.HTTP_200_OK)
@@ -331,9 +331,9 @@ class VotingViewSet(viewsets.ModelViewSet):
                 # save notification
                 not_to = [commentInstance.commentor.id,commentInstance.post.candidate.id]
                 if authenticated_user.id not in not_to:
-                    notification1 = f"{authenticated_user.first_name} has commented on your post."
+                    notification1 = f"{authenticated_user.first_name} commented on your post."
                     models.Notifications.objects.create(sender=authenticated_user,recipient=commentInstance.post.candidate, notification=notification1)
-                    notification2 = f"{authenticated_user.first_name} has replied to your comment."
+                    notification2 = f"{authenticated_user.first_name} replied to your comment."
                     models.Notifications.objects.create(sender=authenticated_user,recipient=commentInstance.commentor, notification=notification2)
                 return Response("success", status=status.HTTP_200_OK)
         return Response({'details':serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
@@ -411,7 +411,7 @@ class VotingViewSet(viewsets.ModelViewSet):
                 )
                 # save notification
                 if authenticated_user.id != post.candidate.id:
-                    notification = f"{authenticated_user.first_name} has liked your post."
+                    notification = f"{authenticated_user.first_name} liked your post."
                     models.Notifications.objects.create(sender=authenticated_user,recipient=post.candidate, notification=notification)
 
             return Response('success', status=status.HTTP_200_OK)
@@ -568,6 +568,41 @@ class VotingViewSet(viewsets.ModelViewSet):
             is_voter = models.HasVoted.objects.filter(voter=authenticated_user).exists()
         
         return Response({'status': is_voter}, status=status.HTTP_200_OK)
+
+
+
+    # NOTIFICATIONS
+    @action(methods=["GET"], detail=False, url_path="get-notifications", url_name="get-notifications")
+    def get_notifications(self, request):
+        try:
+            authenticated_user = request.user
+               
+            try:
+                notification = models.Notifications.objects.filter(recipient=authenticated_user, is_seen=False).order_by('-date_created')
+                notification = serializers.NotificationsSerializer(notification, many=True).data  
+            except Exception as e:
+                logger.error(e)
+                notification = []
+            return Response(notification, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(e)
+
+
+    @action(methods=["GET"], detail=False, url_path="mark-notifications-as-read", url_name="mark-notifications-as-read")
+    def notifications_as_read(self, request):
+        try:
+            authenticated_user = request.user
+               
+            try:
+                notifications = models.Notifications.objects.filter(recipient=authenticated_user, is_seen=False).order_by('-date_created')
+                for notification in notifications:
+                    notification.is_seen = True
+                    notification.save()
+            except Exception as e:
+                logger.error(e)
+            return Response('success', status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(e)
 
         
 
