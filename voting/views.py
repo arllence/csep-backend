@@ -68,8 +68,6 @@ class VotingViewSet(viewsets.ModelViewSet):
         payload = request.data
         authenticated_user = request.user
 
-        # print(payload)
-
         serializer = serializers.CreateCandidatePositionSerializer(data=payload, many=False)
         if serializer.is_valid():
             authenticated_user = request.user
@@ -163,6 +161,7 @@ class VotingViewSet(viewsets.ModelViewSet):
 
     @action(methods=["POST"], detail=False, url_path="approve-candidate-position", url_name="approve-candidate-position")
     def approve_candidate_position(self, request):  
+        authenticated_user = request.user
         payload = request.data     
         serializer = serializers.CandidateApprovalPositionSerializer(data=payload, many=False)
         if serializer.is_valid():     
@@ -170,15 +169,19 @@ class VotingViewSet(viewsets.ModelViewSet):
                 candidate_id = payload['candidate_id']
                 action = payload['action']
 
-                # candidate = get_user_model().objects.get(id=candidate_id)
                 candidate = models.CandidatePosition.objects.filter(candidate=candidate_id).first()
 
                 if action == "accepted":
                     candidate.application_status = "APPROVED"
+                    notification = f"Congratulations! Your Application for {candidate.position.name} has been Approved!"
                 else:
                     candidate.application_status = "REJECTED"
+                    notification = f"Sorry. Your Application for {candidate.position.name} has been Declined!"
 
-                candidate.save()            
+                candidate.save()      
+                # save notification
+                models.Notifications.objects.create(sender=authenticated_user,recipient=candidate.candidate, notification=notification)     
+
                 return Response("success", status=status.HTTP_200_OK)
             except Exception as e:
                 logger.error(e)
@@ -293,6 +296,11 @@ class VotingViewSet(viewsets.ModelViewSet):
                     comment=comment,
                     commentor=authenticated_user
                 )
+                
+                # save notification
+                if authenticated_user.id != post.candidate.id:
+                    notification = f"{authenticated_user.first_name} has commented on your post."
+                    models.Notifications.objects.create(sender=authenticated_user,recipient=post.candidate, notification=notification)
 
                 return Response("success", status=status.HTTP_200_OK)
         return Response({'details':serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
@@ -302,7 +310,6 @@ class VotingViewSet(viewsets.ModelViewSet):
     def create_comment_child(self, request): 
         authenticated_user = request.user
         payload = request.data
-        print(payload)
 
         to_exclude = ('id','commentor','status','date_created')
         GenericSerializer = serializers.createGenericSerializer(models.PostCommentChildren,to_exclude)
@@ -321,7 +328,13 @@ class VotingViewSet(viewsets.ModelViewSet):
                     child=child,
                     commentor=authenticated_user
                 )
-
+                # save notification
+                not_to = [commentInstance.commentor.id,commentInstance.post.candidate.id]
+                if authenticated_user.id not in not_to:
+                    notification1 = f"{authenticated_user.first_name} has commented on your post."
+                    models.Notifications.objects.create(sender=authenticated_user,recipient=commentInstance.post.candidate, notification=notification1)
+                    notification2 = f"{authenticated_user.first_name} has replied to your comment."
+                    models.Notifications.objects.create(sender=authenticated_user,recipient=commentInstance.commentor, notification=notification2)
                 return Response("success", status=status.HTTP_200_OK)
         return Response({'details':serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -396,6 +409,11 @@ class VotingViewSet(viewsets.ModelViewSet):
                     post=post,
                     liker=authenticated_user
                 )
+                # save notification
+                if authenticated_user.id != post.candidate.id:
+                    notification = f"{authenticated_user.first_name} has liked your post."
+                    models.Notifications.objects.create(sender=authenticated_user,recipient=post.candidate, notification=notification)
+
             return Response('success', status=status.HTTP_200_OK)
 
 
@@ -507,12 +525,10 @@ class VotingViewSet(viewsets.ModelViewSet):
         if target == 'all':
             target_groups = ('VOTER','CANDIDATE')
             users = get_user_model().objects.filter(groups__name__in=target_groups)
-            print(users)
             for user in users:
                 processor(user)
         else:
             user = get_user_model().objects.filter(registration_no=target)
-            print(user)
             if user:
                 processor(user.first())
             else:
@@ -536,6 +552,9 @@ class VotingViewSet(viewsets.ModelViewSet):
         models.HasVoted.objects.create(
             voter=authenticated_user,
         )
+        # save notification
+        notification = "Congratulations! Vote Successful! Today you have just accomplished one of the greatest duties of a comrade! Sit back and relax as we process results for you in real-time!"
+        models.Notifications.objects.create(sender=authenticated_user,recipient=authenticated_user, notification=notification)
         return Response('success', status=status.HTTP_200_OK)
 
 

@@ -68,7 +68,7 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
     @action(methods=["POST"], detail=False, url_path="login", url_name="login")
     def login_user(self, request):
         payload = request.data
-        print(payload)
+
         email = request.data.get('email').strip()
         password = request.data.get('password')
 
@@ -80,7 +80,6 @@ class AuthenticationViewSet(viewsets.ModelViewSet):
         input_email = payload['email']#.upper()
         input_password = payload['password']
 
-        print(input_email)
         
         is_authenticated = authenticate(
             registration_no=input_email, password=input_password)
@@ -464,45 +463,6 @@ class AccountManagementViewSet(viewsets.ModelViewSet):
                 return Response({'details':'Invalid User'},status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response({"status": True}, status=status.HTTP_200_OK)
-
-
-    # @action(methods=["POST"], detail=False, url_path="verify-email", url_name="verify-email")
-    # def verify_email(self, request):
-    #     payload = request.data
-
-    #     serializer = serializers.OtpSerializer(data=payload, many=False)
-
-    #     if serializer.is_valid():
-    #         with transaction.atomic():
-    #             otp = payload['otp']
-    #             print(otp)
-    #             try:
-    #                 check = models.OtpCodes.objects.get(otp=otp)
-    #                 user = get_user_model().objects.get(id=request.user.id)
-    #                 user.verified_email = True
-    #                 user.save()
-    #                 check.delete()
-
-    #                 payload = {
-    #                 'id': str(user.id),
-    #                 'email': user.email,
-    #                 'name': user.first_name,
-    #                 "verified_email": user.verified_email,
-    #                 'superuser': user.is_superuser,
-    #                 'exp': datetime.utcnow() + timedelta(seconds=settings.TOKEN_EXPIRY),
-    #                 'iat': datetime.utcnow()
-    #                 }
-                
-    #                 token = jwt.encode(payload, settings.TOKEN_SECRET_CODE)
-    #                 info = {
-    #                     "token": token
-    #                 }
-    #                 return Response(info, status=status.HTTP_200_OK)
-    #             except Exception as e:
-    #                 logger.error(e)
-    #                 return Response({'details':
-    #                                  'Incorrect OTP Code'},
-    #                                 status=status.HTTP_400_BAD_REQUEST)
 
 
     @action(methods=["POST"], detail=False, url_path="create-profile", url_name="create-profile")

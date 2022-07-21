@@ -199,3 +199,24 @@ class HasVoted(models.Model):
 
     def __str__(self):
         return str(self.voter.registration_no)
+
+
+class Notifications(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    sender = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="notification_sender"
+    )
+    recipient = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="notification_receipient", null=True, blank=True
+    )
+    notification = models.TextField()
+    status = models.BooleanField(default=True)
+    is_seen = models.BooleanField(default=False)
+    date_sent = models.DateTimeField(null=True, blank=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = "notifications"
+
+    def __str__(self):
+        return str(self.notification)
