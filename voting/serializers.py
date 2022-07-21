@@ -146,6 +146,13 @@ class NotificationsSerializer(serializers.ModelSerializer):
         model = models.Notifications
         fields = '__all__'
 
+class MessagesSerializer(serializers.ModelSerializer):  
+    to_user = UsersSerializer()
+    from_user = UsersSerializer()
+    class Meta:
+        model = models.Messages
+        fields = '__all__'
+
 class FetchPostSerializer(serializers.ModelSerializer):
     candidate = UsersSerializer()    
     post_image = serializers.SerializerMethodField('get_post_image')

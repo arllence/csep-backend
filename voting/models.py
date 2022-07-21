@@ -220,3 +220,17 @@ class Notifications(models.Model):
 
     def __str__(self):
         return str(self.notification)
+
+class Messages(models.Model):
+    to_user = models.ForeignKey(User, on_delete=models.CASCADE, default=None,related_name='receipient')
+    from_user = models.ForeignKey(User, on_delete=models.CASCADE, default=None,related_name='sender')
+    message = models.TextField(null=True)
+    is_read = models.BooleanField(default=False)
+    c_id = models.CharField(max_length=500, default=None)
+    date_created = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        db_table = "messages"
+
+    def __str__(self):
+        return '%s %s' % (self.to_user,self.from_user)

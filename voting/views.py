@@ -604,5 +604,90 @@ class VotingViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.error(e)
 
+    # MESSAGES
+    @action(methods=["POST"], detail=False, url_path="send-message", url_name="send-message")
+    def send_message(self, request): 
+        authenticated_user = request.user
+        payload = request.data
+
+        to_exclude = ('id','from_user','is_read','c_id','date_created')
+        GenericSerializer = serializers.createGenericSerializer(models.Messages,to_exclude)
+        serializer = GenericSerializer(data=payload, many=False) 
+
+        if serializer.is_valid():
+            with transaction.atomic():
+
+                to_user = payload.get('to_user')
+                to_user = get_user_model().objects.get(id=to_user)
+                message = payload.get('message')
+
+                cid = models.Messages.objects.filter(to_user=to_user.id,from_user=authenticated_user.id).order_by('-id')[0:1]
+                try: 
+                    cid = cid[0]
+                except IndexError:
+                    cid = models.Messages.objects.filter(to_user=authenticated_user.id,from_user=to_user.id).order_by('-id')[0:1]
+                    try:
+                        cid =cid[0]
+                    except IndexError:
+                        cid = str(to_user.id) + "_" + str(authenticated_user.id)
+                        message_s = models.Messages(to_user=to_user,from_user=authenticated_user,message=message,c_id=cid)
+                        message_s.save()
+                        return Response("success", status=status.HTTP_200_OK)
+
+                cid = cid.c_id
+                message_s = models.Messages(to_user=to_user,from_user=authenticated_user,message=message,c_id=cid)
+                message_s.save()
+
+                return Response("success", status=status.HTTP_200_OK)
+        return Response({'details':serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+    @action(methods=["GET"], detail=False, url_path="get-messages", url_name="get-messages")
+    def get_messages(self, request):
+        try:
+            authenticated_user = request.user
+               
+            try:
+                notification = models.Messages.objects.filter(to_user=authenticated_user, from_user=authenticated_user).order_by('is_read','-date_created','c_id').distinct('c_id')
+                notification = serializers.MessagesSerializer(notification, many=True).data  
+            except Exception as e:
+                logger.error(e)
+                notification = []
+            return Response(notification, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(e)
+
+    @action(methods=["GET"], detail=False, url_path="get-conversation", url_name="get-conversation")
+    def get_conversation(self, request):
+        try:
+            authenticated_user = request.user
+            c_id = request.query_params.get('request_id')
+            if not c_id:
+                return Response({'details':"Error getting messages"}, status=status.HTTP_400_BAD_REQUEST)
+               
+            try:
+                notification = models.Messages.objects.filter(c_id=c_id).order_by('id')
+                notification = serializers.MessagesSerializer(notification, many=True).data  
+            except Exception as e:
+                logger.error(e)
+                notification = []
+            return Response(notification, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(e)
+
+
+    @action(methods=["GET"], detail=False, url_path="count-messages", url_name="count-messages")
+    def count_messages(self, request):
+        try:
+            authenticated_user = request.user
+               
+            try:
+                notification = models.Messages.objects.filter(to_user=authenticated_user, is_read=False).count()
+            except Exception as e:
+                logger.error(e)
+                notification = 0
+            return Response(notification, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(e)
         
 
