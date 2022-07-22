@@ -620,35 +620,39 @@ class VotingViewSet(viewsets.ModelViewSet):
                 to_user = payload.get('to_user')
                 to_user = get_user_model().objects.get(id=to_user)
                 message = payload.get('message')
+                c_id = payload.get('c_id')
 
-                cid = models.Messages.objects.filter(to_user=to_user.id,from_user=authenticated_user.id).order_by('-id')[0:1]
-                try: 
-                    cid = cid[0]
-                except IndexError:
-                    cid = models.Messages.objects.filter(to_user=authenticated_user.id,from_user=to_user.id).order_by('-id')[0:1]
-                    try:
-                        cid =cid[0]
-                    except IndexError:
-                        cid = str(to_user.id) + "_" + str(authenticated_user.id)
-                        message_s = models.Messages(to_user=to_user,from_user=authenticated_user,message=message,c_id=cid)
-                        message_s.save()
-                        return Response("success", status=status.HTTP_200_OK)
+                if c_id:
+                    cid = models.Messages.objects.filter(c_id=c_id).order_by('-id').first()
+                else:
+                    cid = models.Messages.objects.filter(to_user=to_user.id,from_user=authenticated_user.id).order_by('-id').first()
+                    print(cid)
+                    try: 
+                        cid = cid[0]
+                    except (IndexError,TypeError):
+                        cid = models.Messages.objects.filter(to_user=authenticated_user.id,from_user=to_user.id).order_by('-id')[0:1]
+                        try:
+                            cid =cid[0]
+                        except IndexError:
+                            cid = str(to_user.id) + "_" + str(authenticated_user.id)
+                            message_s = models.Messages(to_user=to_user,from_user=authenticated_user,message=message,c_id=cid)
+                            message_s.save()
+                            return Response("success", status=status.HTTP_200_OK)
 
-                cid = cid.c_id
-                message_s = models.Messages(to_user=to_user,from_user=authenticated_user,message=message,c_id=cid)
+                # cid = cid.c_id
+                message_s = models.Messages(to_user=cid.from_user,from_user=authenticated_user,message=message,c_id=c_id)
                 message_s.save()
 
                 return Response("success", status=status.HTTP_200_OK)
         return Response({'details':serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
-    @action(methods=["GET"], detail=False, url_path="get-messages", url_name="get-messages")
-    def get_messages(self, request):
+    @action(methods=["GET"], detail=False, url_path="fetch-messages", url_name="fetch-messages")
+    def fetch_messages(self, request):
         try:
-            authenticated_user = request.user
-               
+            authenticated_user = request.user           
             try:
-                notification = models.Messages.objects.filter(to_user=authenticated_user, from_user=authenticated_user).order_by('is_read','-date_created','c_id').distinct('c_id')
+                notification = models.Messages.objects.filter(Q(to_user=authenticated_user) | Q(from_user=authenticated_user)).order_by('c_id','-date_created').distinct('c_id')
                 notification = serializers.MessagesSerializer(notification, many=True).data  
             except Exception as e:
                 logger.error(e)
@@ -657,17 +661,21 @@ class VotingViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.error(e)
 
-    @action(methods=["GET"], detail=False, url_path="get-conversation", url_name="get-conversation")
-    def get_conversation(self, request):
+    @action(methods=["GET"], detail=False, url_path="fetch-conversation", url_name="fetch-conversation")
+    def fetch_conversation(self, request):
         try:
             authenticated_user = request.user
-            c_id = request.query_params.get('request_id')
+            c_id = request.query_params.get('c_id')
             if not c_id:
                 return Response({'details':"Error getting messages"}, status=status.HTTP_400_BAD_REQUEST)
                
             try:
                 notification = models.Messages.objects.filter(c_id=c_id).order_by('id')
                 notification = serializers.MessagesSerializer(notification, many=True).data  
+                msgs = models.Messages.objects.filter(c_id=c_id,to_user=authenticated_user,is_read=False).order_by('id')
+                for msg in msgs:
+                    msg.is_read =True
+                    msg.save()
             except Exception as e:
                 logger.error(e)
                 notification = []
