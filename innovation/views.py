@@ -818,6 +818,7 @@ class EvaluationViewSet(viewsets.ModelViewSet):
                     innovation_id = payload['innovation']
                     innovation = models.Innovation.objects.get(id=innovation_id)
                     payload['innovation'] = innovation
+                    payload['creator'] = authenticated_user
                     assignees = payload['assignees']
                     lead = payload['lead']
                     role = payload['role']
@@ -893,8 +894,12 @@ class EvaluationViewSet(viewsets.ModelViewSet):
     def get_my_innovation_reviews(self, request):
         innovation_id = request.query_params.get('innovation_id')
         authenticated_user = request.user
-        reviews = models.InnovationReview.objects.get(reviewer=authenticated_user, innovation=innovation_id, status=True)
-        reviews = serializers.ReviewSerializer(reviews, many=False).data  
+        try:
+            reviews = models.InnovationReview.objects.get(reviewer=authenticated_user, innovation=innovation_id, status=True)
+            reviews = serializers.ReviewSerializer(reviews, many=False).data  
+        except Exception as e:
+            print(e)
+            reviews = {}
         return Response(reviews, status=status.HTTP_200_OK)
 
 

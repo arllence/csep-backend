@@ -159,6 +159,9 @@ class FullInnovationSerializer(serializers.ModelSerializer):
     information = serializers.SerializerMethodField(read_only=True)
     support_services = serializers.SerializerMethodField(read_only=True)
     social_links = serializers.SerializerMethodField(read_only=True)
+    group = serializers.SerializerMethodField(read_only=True)
+    review = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = models.Innovation
         fields = '__all__'
@@ -191,6 +194,24 @@ class FullInnovationSerializer(serializers.ModelSerializer):
         try:
             social_links = models.InnovationSocialLinks.objects.get(innovation=obj)
             serializer = InnovationSocialLinksSerializer(social_links, many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+    
+    def get_group(self, obj):
+        try:
+            group = models.Group.objects.get(innovation=obj)
+            serializer = GroupSerializer(group, many=False)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+
+    def get_review(self, obj):
+        try:
+            group = models.InnovationReview.objects.get(innovation=obj)
+            serializer = ReviewSerializer(group, many=False)
             return serializer.data
         except Exception as e:
             print(e)
@@ -239,6 +260,27 @@ class CreateGroupSerializer(serializers.Serializer):
     role = serializers.CharField()
     assignees = serializers.ListField(min_length=1)
 
+class GroupMemberSerializer(serializers.ModelSerializer):  
+    # innovation = InnovationSerializer()
+    member = UsersSerializer()
+    class Meta:
+        model = models.GroupMember
+        fields = '__all__'
+class GroupSerializer(serializers.ModelSerializer):  
+    members = serializers.SerializerMethodField(read_only=True)
+
+    def get_members(self, obj):
+        try:
+            members = models.GroupMember.objects.filter(group=obj)
+            serializer = GroupMemberSerializer(members, many=True)
+            return serializer.data
+        except Exception as e:
+            print(e)
+            return []
+    class Meta:
+        model = models.Group
+        fields = '__all__'
+
 class CreateReviewSerializer(serializers.Serializer):
     innovation = serializers.CharField()
     action = serializers.CharField()
@@ -246,6 +288,7 @@ class CreateReviewSerializer(serializers.Serializer):
 
 class ReviewSerializer(serializers.ModelSerializer):  
     # innovation = InnovationSerializer()
+    reviewer = UsersSerializer()
     class Meta:
         model = models.InnovationReview
         fields = '__all__'

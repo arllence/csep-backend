@@ -287,6 +287,9 @@ class Group(models.Model):
     innovation = models.ForeignKey(
        Innovation, on_delete=models.CASCADE, related_name="groups"
     )
+    creator =models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="creator", blank=True, null=True
+    )
     role = models.CharField(max_length=255)
     status = models.BooleanField(default=True)
     date_created = models.DateTimeField(auto_now_add=True)
